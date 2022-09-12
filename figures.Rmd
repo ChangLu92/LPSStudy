@@ -346,13 +346,13 @@ Heatmap(corr_clin,
 
 p = ggplot(selectedclin.s1c %>% rownames_to_column(var = 'ID') )+
   geom_point(aes(x = SBP, y =Glucose ))+
-  geom_text_repel(aes(x = SBP, y =Glucose, label=ID ))+
+  geom_text_repel(aes(x = SBP, y =Glucose, label=ID, max.overlaps=50 ))+
   ggplot(selectedclin %>% tibble::rownames_to_column(var = 'ID') )+
   geom_point(aes(x = DBP, y =Glucose  ))+
-  geom_text_repel(aes(x = DBP, y =Glucose, label=ID  ))+
+  geom_text_repel(aes(x = DBP, y =Glucose, label=ID, max.overlaps=50  ))+
   ggplot(selectedclin %>% tibble::rownames_to_column(var = 'ID') )+
   geom_point(aes(x = DBP, y =SBP  ))+
-  geom_text_repel(aes(x = DBP, y =SBP, label=ID  ))
+  geom_text_repel(aes(x = DBP, y =SBP, label=ID, max.overlaps=50  ))
 print(p)
 
 
