@@ -274,16 +274,19 @@ selectedclin = selectedclin.s1c
 corrtraits = sapply(selectedclin, function(i) {
   apply(selectedclin, 2, function(j) { 
     res = cor.test(x=j, y = i , method =  "pearson");
-    adjpv = p.adjust(res$p.value, method = 'fdr');
-    return( cbind(res$p.value,res$estimate,adjpv) )
+    return( cbind(res$p.value,res$estimate) )
     })
 })
-corr_pv = data.frame(corrtraits[seq(1,nrow(corrtraits)-2,by=3), ])  
-corr_clin = data.frame(corrtraits[seq(2,nrow(corrtraits)-1,by=3), ] ) 
-corr_adjpv = data.frame(corrtraits[seq(3,nrow(corrtraits),by=3), ] ) 
-rownames(corr_clin)=colnames(corr_clin)=colnames(corr_adjpv)
 
 
+
+
+corr_pv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  
+corr_clin = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) 
+rownames(corr_clin)=colnames(corr_clin)
+corr_adjpv<-matrix(p.adjust(unlist((corr_pv)), method = "fdr"),nrow=14)
+ 
+ 
 # visualize pv
 p=Heatmap(corr_clin,
         show_row_dend = FALSE,
@@ -308,7 +311,7 @@ p=Heatmap(corr_clin,
           }
           # grid.text(sprintf("%.2f \n(%.2f)", corr_clin[i, j], corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))
 })
-print(draw(p,  heatmap_legend_side = "left"))
+draw(p,  heatmap_legend_side = "left")
 
 
 # visualize adjusted pvalue
@@ -328,7 +331,7 @@ Heatmap(corr_clin,
           if (corr_adjpv[i, j] <0.00000000001){
           grid.text("0", x, y, gp = gpar(fontsize = 10))}
           else if (corr_adjpv[i, j] <0.01){
-          grid.text(sprintf("%.2e", corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))}else{
+          grid.text(sprintf("%.2e", corr_adjpv[i, j] ), x, y, gp = gpar(fontsize = 10))}else{
             # grid.text(sprintf("%.2f", corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))
             grid.text(sprintf("%.2f", corr_adjpv[i, j] ), x, y, gp = gpar(fontsize = 10))
           }
