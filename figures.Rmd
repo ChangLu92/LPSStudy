@@ -14,45 +14,31 @@ This is an R Markdown presentation. Markdown is a simple formatting syntax for a
 
 When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
 
-## Slide with Bullets
-
-- Bullet 1
-- Bullet 2
-- Bullet 3
 
 # load library
 ```{r}
-# WGCNA on LOGFC
 library(WGCNA)
 library(limma)
-library(lumi)
 require(lumiHumanIDMapping)
 
 library(dplyr)
 library(tibble)
-library("readr")
 library(stringr)
-library(OneR)
 
 
 library(circlize)
-library(viper)
-library(dorothea)
-library(progeny)
 library(piano)
 library(clusterProfiler)
 library(DOSE)
 
 library(igraph)
-library(RCy3)
-
 library(ComplexHeatmap)
+
 library(ggplot2)
 library(gplots)
 library(ggrepel)
 library(ggpmisc)
 library(ggnewscale)
-library(circlize)
 library(ggpubr)
 library("ggdendro")
 library("ape")
