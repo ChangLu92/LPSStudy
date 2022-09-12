@@ -1,0 +1,381 @@
+---
+title: "figures"
+output: ioslides_presentation
+date: "2022-09-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## R Markdown
+
+This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+# load library
+```{r}
+# WGCNA on LOGFC
+library(WGCNA)
+library(limma)
+library(lumi)
+require(lumiHumanIDMapping)
+
+library(dplyr)
+library(tibble)
+library("readr")
+library(stringr)
+library(OneR)
+
+
+library(circlize)
+library(viper)
+library(dorothea)
+library(progeny)
+library(piano)
+library(clusterProfiler)
+library(DOSE)
+
+library(igraph)
+library(RCy3)
+
+library(ComplexHeatmap)
+library(ggplot2)
+library(gplots)
+library(ggrepel)
+library(ggpmisc)
+library(ggnewscale)
+library(circlize)
+library(ggpubr)
+library("ggdendro")
+library("ape")
+
+
+```
+
+
+
+# load data
+```{r}
+# diffexpsfiter: LPS response matrix (log2LPS - log2Base)
+# allgenesDFlpsfilter : results of differential expression analysis using limma
+# normlps: log2 LPS gene expression
+# normbase: log2 baseline gene expression
+
+load('data/combatlps7933center38.RData')
+# plotDensities(diffexpsfiter)
+load('data/LPSgeneexpression.RData')
+# load clinical info of patients
+clin <-readRDS( 'data/clin38.rds')
+
+```
+
+
+# CORRALL2: calculate correlation of clinal traits with baseline, lps, and lps response. 
+```{r}
+
+# lps: correlation with all traits
+corrtraits = sapply(clin, function(i) {
+  apply(normlps, 1, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    return( cbind(res$p.value,res$estimate) )
+    })
+})
+corr_lpspv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  %>% mutate(genes = rownames(normlps))
+corr_lps = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) %>% mutate(genes = rownames(normlps))
+
+# baseline: correlation with all traits
+corrtraits = sapply(clin, function(i) {
+  apply(normbase, 1, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    return( cbind(res$p.value,res$estimate) )
+    })
+})
+corr_basepv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  %>% mutate(genes = rownames(normbase))
+corr_base = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) %>% mutate(genes = rownames(normbase))
+
+
+# lpsresponse: correlation with all traits
+corrtraits = sapply(clin, function(i) {
+  apply(diffexpsfiter, 1, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    return( cbind(res$p.value,res$estimate) )
+    })
+})
+corr_pv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  %>% mutate(genes = rownames(diffexpsfiter))
+corr_logfc = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) %>% mutate(genes = rownames(diffexpsfiter))
+
+
+corrall2 = allgenesDFlpsfilter %>%
+  dplyr::rename( lpsinfo = 'LPS-TLR4-GO') %>%
+ # dplyr::select(-mergedColors2C) %>%
+   left_join(corr_lps, by = 'genes') %>%
+   left_join(corr_lpspv, by = 'genes', suffix = c(".corr_lps", ".corr_lps_pv"))  %>%
+   left_join(corr_base, by = 'genes') %>%
+   left_join(corr_basepv, by = 'genes', suffix = c(".corr_base", ".corr_base_pv"))%>%
+   left_join(corr_logfc, by = 'genes') %>%
+   left_join(corr_pv, by = 'genes', suffix = c(".corr_logfc", ".corr_logfc_pv"))
+
+corrall2$direction[corrall2$logFC>0] <- 'up'
+corrall2$direction[corrall2$logFC<0] <- 'down'
+
+```
+
+
+# Figure 1B
+```{r}
+idx1 = str_detect(colnames(corrall2) , 'corr_logfc' ) 
+candiname = colnames(corrall2) [idx1 & ! (str_detect(colnames(corrall2) , '_pv' )) 
+                                & ! (str_detect(colnames(corrall2) , 'Hypertension' )    )
+                                & ! (str_detect(colnames(corrall2) , 'Pack_years' )  )
+                                & ! (str_detect(colnames(corrall2) , 'follow' )  )]
+
+selectedgenes = corrall2 %>% dplyr::filter(abs(logFC)>1, adj.P.Val<0.05) 
+cor2 = selectedgenes %>% dplyr::select(candiname) 
+
+# correlation's correlation
+corr_corr <- as.data.frame(t(apply(cor2, 2, function(x) 
+  { res = cor.test(x, y = selectedgenes$logFC, method =  "pearson")
+return(c(res$p.value,res$adjpv, res$estimate))}
+) )) %>% dplyr::rename(pv = 'V1') %>% 
+  rownames_to_column(var = 'Traits') %>%
+  mutate(adjpv = p.adjust(pv, method = 'fdr'), Traits = str_replace_all(Traits,c( ".corr_logfc"="", 
+                                                                                  "_"=" ", 
+                                                                                  "\\."=": ",
+                                                                                  "Lab" = "Lab:",
+                                                                                  "Blood Pressure diastolic"="DBP",
+                                                                                  "Blood Pressure systolic"="SBP",
+                                                                                  "trigly" = "TG") ) )
+  
+# str_replace_all(c("one" = "1", "two" = "2", "three" = "3"))
+p=ggplot(corr_corr,aes(x=cor, y=-log10(adjpv))) + 
+  geom_point()+ 
+  theme_bw()+
+  labs(x='Correlation with LPS response')+
+  geom_text_repel(data = corr_corr %>% filter(adjpv<0.01, abs(cor) > 0.2) , aes(label= str_remove(Traits,".corr_logfc") ),
+                  max.overlaps = 20
+            # vjust  = 1.5 , 
+            # check_overlap = TRUE
+            )
+
+
+# jpeg( filename = '../results/corr_corr.jpg', height = 400, width = 400, res = 130)
+print(p)
+# dev.off()
+
+
+```
+
+
+
+# Table 2
+```{r}
+
+candiname = colnames(clin) [! (str_detect(colnames(clin) , 'Hypertension' )    )
+                                & ! (str_detect(colnames(clin) , 'Pack_years' )  )
+                                & ! (str_detect(colnames(clin) , 'follow' )  )]
+clininfo = data.frame(row.names = candiname, info = 1:length(candiname))
+for(i in candiname){
+  if(length(unique(clin[,i]))<3){
+    a = sum(clin[,i]==1)
+    b = sum(clin[,i]==0)
+    clininfo[i,]=paste0("yes: ",a,', No:',b)
+  }else{
+    a = mean(clin[,i], na.rm = TRUE)
+    b = sd(clin[,i], na.rm = TRUE)
+    clininfo[i,]=paste0(round(a,2) ,"\u00B1",round(b,2))
+  }
+}
+
+```
+
+
+
+# FIG 1D
+# CORRALL2: TLR4 GENES VISUAILAZATION
+```{r}
+TLR4gene = corrall2 %>% 
+  dplyr::filter(
+    # lpsinfo == "LPS-TLR4-GO", 
+                # adj.P.Val < 0.05
+                ) %>%
+    dplyr::select(genes,hgnc_symbol, lpsinfo, logFC, adj.P.Val,mergedColors2A.diff,
+                  Blood_Pressure_diastolic.corr_logfc,
+                  Blood_Pressure_diastolic.corr_logfc_pv,
+                  Blood_Pressure_diastolic.corr_base,
+                  Blood_Pressure_diastolic.corr_base_pv,
+                  Blood_Pressure_diastolic.corr_lps,
+                  Blood_Pressure_diastolic.corr_lps_pv,
+                  Blood_Pressure_systolic.corr_logfc,
+                  Blood_Pressure_systolic.corr_logfc_pv,
+                  Blood_Pressure_systolic.corr_base,
+                  Blood_Pressure_systolic.corr_base_pv,
+                  Blood_Pressure_systolic.corr_lps,
+                  Blood_Pressure_systolic.corr_lps_pv) %>% rename(module = 'mergedColors2A.diff')
+# write.csv(TLR4gene,'../results/TLR4gene.csv')
+
+
+dngenename = c('PRDX3', 'PYCARD', 'CD14', 'MAPK3','HDAC1')
+upgenename = c('CXCL2','CCR7','NFKB1','CD6','HSPD1','CCL2','PTGS2')
+htm = TLR4gene %>% dplyr::filter(hgnc_symbol %in% c(dngenename,upgenename)) 
+
+
+# heatmap
+ha = rowAnnotation(logFC = anno_barplot(htm$logFC),width = unit(2, "cm"))
+p=Heatmap(htm[,c(7,13)], 
+        right_annotation = ha,
+        row_labels = htm$hgnc_symbol,
+        col=colorRamp2(c(-max(htm[,c("Blood_Pressure_diastolic.corr_logfc","Blood_Pressure_systolic.corr_logfc")]), 0, max(max(htm[,c("Blood_Pressure_diastolic.corr_logfc","Blood_Pressure_systolic.corr_logfc")]))), c("green", "white", "magenta")),
+        column_labels = c('DBP', 'SBP'),
+        column_names_rot = 45,
+        width = unit(2, "cm"),
+        cluster_columns = FALSE,
+        name = 'Correlation',
+        show_row_dend = FALSE,
+        row_split = htm$direction ,
+        heatmap_legend_param = list(
+    title_position = "lefttop-rot"
+))
+
+# jpeg(paste0('../results/',filename,'Heatmap_TLR4GENES.jpg'), height = 400,width = 400, res = 110)
+print(p)
+# dev.off()
+
+```
+
+# FIG 1C and FigS1C: correlation among clinical  traits
+```{r}
+
+# fig s1c
+selectedclin.s1c = clin[,!colnames(clin) %in% c("Hypertension.yes","follow_up.case" , "Pack_years")]
+colnames(selectedclin.s1c) = str_replace_all(colnames(selectedclin.s1c),c( ".corr_logfc"="", 
+                          "\\."="\\: ",
+                          "Lab_" = "",
+                          "_"=" ",
+                          "glucose" = "Glucose",
+                          "crea" = "Creatinine",
+                          "bmi" = "BMI",
+                          "Blood Pressure diastolic"="DBP",
+                          "Blood Pressure systolic"="SBP",
+                          "trigly" = "TG") ) 
+
+# # fig 1c
+selectedclin.1c = clin[,!colnames(clin) %in% c("Hypertension.yes","Heart_rate","Lab_glucose","Lab_HDL_chol" ,  "Lab_crea" ,         "Lab_LDL_chol","Renail_failure.yes" , "Current_Smoker.yes", "Diabetes_Mellitus.yes" , "follow_up.case" ,"bmi","Pack_years" )]
+colnames(selectedclin.1c) = str_replace_all(colnames(selectedclin.1c),c( ".corr_logfc"="", 
+                          "\\."="\\: ",
+                          "Lab_" = "",
+                          "_"=" ",
+                          "glucose" = "Glucose",
+                          "crea" = "Creatinine",
+                          "bmi" = "BMI",
+                          "Blood Pressure diastolic"="DBP",
+                          "Blood Pressure systolic"="SBP",
+                          "trigly" = "TG") ) 
+
+
+
+selectedclin = selectedclin.s1c
+# selectedclin = selectedclin.1c
+
+# traits correlation with all traits
+corrtraits = sapply(selectedclin, function(i) {
+  apply(selectedclin, 2, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    adjpv = p.adjust(res$p.value, method = 'fdr');
+    return( cbind(res$p.value,res$estimate,adjpv) )
+    })
+})
+corr_pv = data.frame(corrtraits[seq(1,nrow(corrtraits)-2,by=3), ])  
+corr_clin = data.frame(corrtraits[seq(2,nrow(corrtraits)-1,by=3), ] ) 
+corr_adjpv = data.frame(corrtraits[seq(3,nrow(corrtraits),by=3), ] ) 
+rownames(corr_clin)=colnames(corr_clin)=colnames(corr_adjpv)
+
+
+# visualize pv
+p=Heatmap(corr_clin,
+        show_row_dend = FALSE,
+        show_column_dend = FALSE,
+        column_names_rot = 45,
+        name = 'Correlation',
+        column_title = "p-value",
+        heatmap_legend_param = list(
+        # side = "top",
+    title_position = "leftcenter-rot",
+    # direction = "horizontal"
+    direction = "vertical"
+    ),
+        col=colorRamp2(c(-1, 0, 1), c("green", "white", "magenta")),
+        cell_fun = function(j, i, x, y, width, height, fill) {
+          if (corr_pv[i, j] <0.00000000001){
+          grid.text("0", x, y, gp = gpar(fontsize = 10))}
+          else if (corr_pv[i, j] <0.01){
+          grid.text(sprintf("%.2e", corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))}else{
+            grid.text(sprintf("%.2f", corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))
+            # grid.text(sprintf("%.2f", corr_adjpv[i, j] ), x, y, gp = gpar(fontsize = 10))
+          }
+          # grid.text(sprintf("%.2f \n(%.2f)", corr_clin[i, j], corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))
+})
+print(draw(p,  heatmap_legend_side = "left"))
+
+
+# visualize adjusted pvalue
+Heatmap(corr_clin,
+        show_row_dend = FALSE,
+        show_column_dend = FALSE,
+        column_names_rot = 45,
+        name = 'Correlation',
+         column_title = "adjusted p-value",
+        heatmap_legend_param = list(
+    title_position = "leftcenter-rot",
+    # direction = "horizontal"
+    direction = "vertical"
+    ),
+        col=colorRamp2(c(-1, 0, 1), c("green", "white", "magenta")),
+        cell_fun = function(j, i, x, y, width, height, fill) {
+          if (corr_adjpv[i, j] <0.00000000001){
+          grid.text("0", x, y, gp = gpar(fontsize = 10))}
+          else if (corr_adjpv[i, j] <0.01){
+          grid.text(sprintf("%.2e", corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))}else{
+            # grid.text(sprintf("%.2f", corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))
+            grid.text(sprintf("%.2f", corr_adjpv[i, j] ), x, y, gp = gpar(fontsize = 10))
+          }
+          # grid.text(sprintf("%.2f \n(%.2f)", corr_clin[i, j], corr_pv[i, j] ), x, y, gp = gpar(fontsize = 10))
+})
+
+
+```
+
+# DBP SBP AND GLUCOSE
+```{r}
+
+p = ggplot(selectedclin.s1c %>% rownames_to_column(var = 'ID') )+
+  geom_point(aes(x = SBP, y =Glucose ))+
+  geom_text_repel(aes(x = SBP, y =Glucose, label=ID ))+
+  ggplot(selectedclin %>% tibble::rownames_to_column(var = 'ID') )+
+  geom_point(aes(x = DBP, y =Glucose  ))+
+  geom_text_repel(aes(x = DBP, y =Glucose, label=ID  ))+
+  ggplot(selectedclin %>% tibble::rownames_to_column(var = 'ID') )+
+  geom_point(aes(x = DBP, y =SBP  ))+
+  geom_text_repel(aes(x = DBP, y =SBP, label=ID  ))
+print(p)
+
+
+```
+
+#FIG 1E
+```{r}
+
+```
+
+#FIG 2D AND FigS 2C
+```{r}
+
+```
+
