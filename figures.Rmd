@@ -369,13 +369,42 @@ print(p)
 
 ```
 
-#FIG 1E
-```{r}
 
+
+#FIG 2D
+```{r}
+p=ggplot(corrall2 %>% filter(mergedColors2A.diff %in% c("salmon","cyan")) ) +
+  geom_point(size = 3, aes(x=logFC, y=-log10(adj.P.Val), color = Blood_Pressure_diastolic.corr_logfc))+
+  scale_colour_gradient2(midpoint = 0, low = 'green', mid = "white",high = 'magenta')+facet_wrap(vars(mergedColors2A.diff), ncol = 2)+
+  labs(color = 'DBP')+
+  theme(strip.text.x = element_text(size = 20), 
+        legend.text = element_text(size = 14), 
+        legend.title = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14))
+  # geom_text(data = corr_corr_mergedColors2A.diff_BPD %>% filter(mergedColors2A.diff %in% names), 
+            # mapping = aes(x =0, y = 50, label = paste('cor =',round(cor,2) )))
+
+print(p)
 ```
 
-#FIG 2D AND FigS 2C
+
+#FigS 2C
 ```{r}
+names = c("turquoise" , "lightyellow", "green" , "greenyellow" ,"brown", "red" , "pink" , "darkgreen")
+p=ggplot(corrall2 %>% filter(mergedColors2A.diff %in% names) ) +
+  geom_point(size = 3, aes(x=logFC, y=-log10(adj.P.Val), color = Blood_Pressure_diastolic.corr_logfc))+
+  scale_colour_gradient2(midpoint = 0, low = 'green', mid = "white",high = 'magenta')+facet_wrap(vars(mergedColors2A.diff), nrow  = 1)+
+  labs(color = 'DBP')+
+  theme(strip.text.x = element_text(size = 18), 
+        legend.text = element_text(size = 12), 
+        legend.title = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        legend.position = "top",
+        legend.key.width= unit(2, 'cm')
+        )
+
+print(p)
 
 ```
 
