@@ -37,12 +37,12 @@ library(ComplexHeatmap)
 library(ggplot2)
 library(gplots)
 library(ggrepel)
-# library(ggpmisc)
+library(ggpmisc)
 library(ggnewscale)
 library(ggpubr)
 library("ggdendro")
 library("ape")
-
+library(matrixStats)
 
 ```
 
@@ -54,6 +54,7 @@ library("ape")
 # allgenesDFlpsfilter : results of differential expression analysis using limma
 # normlps: log2 LPS gene expression
 # normbase: log2 baseline gene expression
+
 
 load('data/combatlps7933center38.RData')
 # plotDensities(diffexpsfiter)
@@ -152,7 +153,7 @@ p=ggplot(corr_corr,aes(x=cor, y=-log10(adjpv))) +
             )
 
 
-# jpeg( filename = '../results/corr_corr.jpg', height = 400, width = 400, res = 130)
+# jpeg( filename = 'results/corr_corr.jpg', height = 400, width = 400, res = 130)
 print(p)
 # dev.off()
 
@@ -205,7 +206,7 @@ TLR4gene = corrall2 %>%
                   Blood_Pressure_systolic.corr_base_pv,
                   Blood_Pressure_systolic.corr_lps,
                   Blood_Pressure_systolic.corr_lps_pv) %>% rename(module = 'mergedColors2A.diff')
-# write.csv(TLR4gene,'../results/TLR4gene.csv')
+# write.csv(TLR4gene,'results/TLR4gene.csv')
 
 
 dngenename = c('PRDX3', 'PYCARD', 'CD14', 'MAPK3','HDAC1')
@@ -230,13 +231,17 @@ p=Heatmap(htm[,c(7,13)],
     title_position = "lefttop-rot"
 ))
 
-# jpeg(paste0('../results/',filename,'Heatmap_TLR4GENES.jpg'), height = 400,width = 400, res = 110)
+# jpeg(paste0('results/',filename,'Heatmap_TLR4GENES.jpg'), height = 400,width = 400, res = 110)
 print(p)
 # dev.off()
 
 ```
 
-# FigS1C: correlation among clinical  traits
+
+
+
+
+# FigS1C : correlation among clinical  traits
 ```{r}
 # fig s1c
 selectedclin.s1c = clin[,!colnames(clin) %in% c("Hypertension.yes","follow_up.case" , "Pack_years")]
@@ -325,7 +330,9 @@ print(draw(p,  heatmap_legend_side = "left"))
 dev.off()
 ```
 
-#FIG 1C 
+
+
+#FIG 1C : correlation among clinical  traits
 ```{r}
 clin1c = c("age",  "DBP","SBP","TG","Sex..male")
 corr_clin1c = corr_clin[clin1c,clin1c]
@@ -425,6 +432,136 @@ print(p)
 
 
 ```
+
+
+
+# Fig 1E
+```{r}
+breaks <- c(0, 80, 100)
+tags <- c("low","high")
+
+group_bpd <- cut(clin$Blood_Pressure_diastolic, 
+                  breaks=breaks, 
+                  include.lowest=T, 
+                  right=F, 
+                  labels=tags)
+
+breaks <- c(0, 130, 200)
+tags <- c("low","high") #c("<130",">=130")
+group_bps <- cut(clin$Blood_Pressure_systolic,
+                  breaks=breaks,
+                  include.lowest=T,
+                  right=F,
+                  labels=tags)
+
+
+TOPDEG = corrall2 %>% filter(adj.P.Val< 0.01, logFC > 1)
+medup = colMedians(diffexps_hgnc_f[rownames(diffexps_hgnc_f) %in% TOPDEG$hgnc_symbol, ])
+TOPDEG = corrall2 %>% filter(adj.P.Val< 0.01, logFC< -1)
+meddn = colMedians(diffexps_hgnc_f[rownames(diffexps_hgnc_f) %in% TOPDEG$hgnc_symbol, ])
+
+
+df4scatter = data.frame(Blood_Pressure_diastolic = clin$Blood_Pressure_diastolic, 
+                        Blood_Pressure_systolic = clin$Blood_Pressure_systolic,
+                        DBP = group_bpd, 
+                        SBP = group_bps,
+                        # MADup = MADup, 
+                        UP = medup,
+                        # MADdn = MADdn,
+                        Down = meddn,
+                        # MADall=MADall,
+                        sex = clin$Sex,
+                        sampleid = rownames(clin)) %>% 
+  # arrange(Blood_Pressure_diastolic) %>% 
+  filter(!is.na(Blood_Pressure_diastolic), 
+         # Blood_Pressure_diastolic >= 60
+         )
+
+
+longmat = df4scatter %>% 
+  tidyr::gather(LPS_response, value, c(UP,Down)) %>% 
+  tidyr::gather(BPC, BPLEVEL, c(DBP,SBP)) 
+
+
+p=ggplot(longmat,aes(color= BPLEVEL, y = value, x =BPC ))+
+  # ggplot(longmat  ,aes(x= Blood_Pressure_systolic, y = value,))+
+  # geom_point() +
+  geom_boxplot()+
+  geom_jitter(width = 0.25)+
+  theme_bw()+
+  labs(color = 'BP Level', x = 'BP',y=' LPS Response ')+
+  # scale_color_discrete()+
+  # geom_smooth(method=lm, formula = y ~ x, size=2)+
+  # scale_color_gradient(low = 'blue', high = 'red')+
+  facet_wrap(vars(LPS_response), scales  =  "free")+
+  stat_compare_means(
+    method = "t.test", 
+                    label =  "p.format",
+                      label.x = 1.5,
+                      vjust=1.5,
+                      size = 5,
+                      # comparisons = list(c("<120","[120-140)"),c(">=140","[120-140)"),c("<120",">=140") ),
+                      # aes(group = Systolic_Blood_Pressure_Level),
+                      hide.ns=F)+
+  # geom_text_repel(label=  longmat$Blood_Pressure_diastolic )+
+  # geom_smooth(method=lm, formula = y ~ x, size=3)+
+  # stat_poly_eq(formula = y ~ x,
+  #              eq.with.lhs = "italic(hat(y))~`=`~",
+  #              aes(label = paste(..eq.label.., ..p.value.label.., sep = "*plain(\",\")~")),
+  #              parse = TRUE)+
+  # ylab(' LPS Response ')+
+    theme( axis.title = element_text(size = 20), 
+           strip.text = element_text(size=20),
+           axis.text = element_text(size = 20),
+           legend.text =  element_text(size = 20), 
+           legend.direction = "horizontal",
+           legend.position ="top",
+           legend.title =  element_text(size = 20))
+ jpeg('results/bpvslps.jpg',height = 500,width = 680,res = 120)
+print(p)
+dev.off()
+
+
+```
+
+
+
+
+
+# Fig S1D: Scatters showing the association between DBP levels and the expression of 6 LPS responsive genes in the LPS-TLR4 pathway on Baseline and LPS-stimulated microarray data 
+```{r}
+subTLR4gene = TLR4gene %>% filter(hgnc_symbol %in%  c("TNF", "NFKB1", "CD68","HSPD1", "CCL2" , "CASP3"))
+
+lpsmat = bind_cols(as.data.frame( t(normlps[rownames(normlps) %in% subTLR4gene$genes, ] )), clin %>% dplyr::select(Blood_Pressure_diastolic, Blood_Pressure_systolic) )
+colnames(lpsmat)[1:(ncol(lpsmat)-2)] =subTLR4gene[match(colnames(lpsmat)[1:(ncol(lpsmat)-2)],subTLR4gene$genes)   ,'hgnc_symbol']
+
+basemat = bind_cols( as.data.frame( t(normbase[rownames(normbase) %in% subTLR4gene$genes, ] )), clin %>% dplyr::select(Blood_Pressure_diastolic, Blood_Pressure_systolic) )
+colnames(basemat)[1:(ncol(lpsmat)-2)] =subTLR4gene[match(colnames(basemat)[1:(ncol(basemat)-2)],subTLR4gene$genes)   ,'hgnc_symbol']
+
+bindmat = bind_rows(lpsmat,basemat )
+bindmat$Condition = rep(c('LPS','Baseline'), each = nrow(lpsmat))
+
+for (i in c(genenames)) {
+p=ggplot(bindmat,aes_string(x= 'Blood_Pressure_diastolic', y= i ) )+geom_point()+ 
+facet_wrap(vars(Condition), scales  =  "free")+
+  theme_bw()+
+  geom_smooth(method=lm, formula = y ~ x, size=3)+
+  stat_poly_eq(formula = y ~ x,
+  eq.with.lhs = "italic(hat(y))~`=`~",
+  aes(label = paste(..eq.label.., ..p.value.label..,sep = "*plain(\",\")~")), parse = TRUE)+
+  labs(y='Gene expression', x='DBP level')
+
+jpeg(paste0('results/',i,'-lm.jpg') ,width = 700,height = 300, res=120)
+print(p)
+dev.off()
+
+}
+
+```
+
+
+
+
 
 
 # WGCNA: correlation ME and clinical traits HEATMAP (Fig 2b and FIG S2B)
@@ -528,6 +665,7 @@ ht_list=Heatmap(cor_list$moduleTraitCor,
          }
 })
 
+# Fig s2b
 draw(
   ht_list,
   heatmap_legend_side = "right",
@@ -591,7 +729,7 @@ dev.off()
 
 ```
 
-FIG S2B
+#FIG S2B
 ```{r}
 
 COR = cor_list$moduleTraitCor[, !(colnames(cor_list$moduleTraitCor) %in% c( "DBP", "SBP") )]
@@ -683,23 +821,53 @@ p=ggplot(corrall2 %>% filter(mergedColors2A.diff %in% names) ) +
         )
 
 print(p)
+```
+
+
+# Fig 2C
+```{r}
+names = c("salmon","cyan")
+p=ggplot(corrall2 %>% filter(mergedColors2A.diff %in% names) ) +
+  geom_point(size = 3, aes(x=logFC, y=-log10(adj.P.Val), color = Blood_Pressure_diastolic.corr_logfc))+
+  scale_colour_gradient2(midpoint = 0, low = 'green', mid = "white",high = 'magenta')+facet_wrap(vars(mergedColors2A.diff), nrow  = 1)+
+  labs(color = 'DBP')+
+  theme(strip.text.x = element_text(size = 18), 
+        legend.text = element_text(size = 12), 
+        legend.title = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        legend.position = "top",
+        legend.key.width= unit(2, 'cm')
+        )
+print(p)
+```
+
+
+# pathway database info
+```{r}
+# You can download the GO file and Pathway file from GSEA wbsite http://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
+
+GOFILE = '/Volumes/My Passport/synchronization/CTMM/CTMM by Chang/codes/AnalysisAfterClusteringProject/referencefile/c5.go.v7.4.symbols.gmt'
+# pathways = "/Volumes/My Passport/synchronization/CTMM/CTMM by Chang/codes/AnalysisAfterClusteringProject/referencefile/c2.cp.v7.2.symbols.gmt"
+gsc = loadGSC(GOFILE)
+subgsc = gsc$gsc
 
 ```
 
 
-# FIG 3B & D
+
+# F3A
 ```{r}
+library(RCy3)
+cytoscapePing()
 source('functions.R')
 
 module = corrall2$mergedColors2A.diff
 names(module) = corrall2$genes
 
-colunmname = list(c("lightcyan","tan"),"lightcyan","tan","royalblue")
 colunmname = list("salmon","cyan")
 i=1
 
-
-# WGCNA NETWORK
+# WGCNA NETWORK SALMON
 vertexinfo = corrall2 %>% filter(mergedColors2A.diff %in% colunmname[[i]]) 
 subnetwork = chooseTopHubgenes(datExpr=t(diffexpsfiter), 
                                module=module, 
@@ -709,149 +877,326 @@ subnetwork = chooseTopHubgenes(datExpr=t(diffexpsfiter),
                                t = 0.5)
 vertexinfo = as.data.frame(vertex_attr(subnetwork[[2]]) )  
 
-
-
-
-# volcanl plot
-ggplot(vertexinfo,aes(x = logFC,y= -log10(adj.P.Val) ))+
-  geom_point(aes(color = Blood_Pressure_diastolic.corr_logfc))+
-  scale_color_gradient2(low = 'blue', mid = "white", high = "red")
-
-ggplot(vertexinfo,aes(x = logFC,y= Blood_Pressure_diastolic.corr_logfc ))+
-  geom_point()
-
+# # volcanl plot
+# ggplot(vertexinfo,aes(x = logFC,y= -log10(adj.P.Val) ))+
+#   geom_point(aes(color = Blood_Pressure_diastolic.corr_logfc))+
+#   scale_color_gradient2(low = 'blue', mid = "white", high = "red")
+# ggplot(vertexinfo,aes(x = logFC,y= Blood_Pressure_diastolic.corr_logfc ))+
+#   geom_point()
 # createNetworkFromIgraph(subnetwork[[2]], paste(c(colunmname[i], '-WGCNA38'),collapse ="_") )
 # setVisualStyle("CL1DOROTHEA")
 
-subvertexdf = vertexinfo %>% dplyr::select(genes, hgnc_symbol, logFC, Blood_Pressure_diastolic.corr_logfc, WGCNAweight,sumweight,hubgenes)
+subvertexdf = vertexinfo %>% dplyr::select(genes, hgnc_symbol, logFC, Blood_Pressure_diastolic.corr_logfc, sumweight,hubgenes)
 
 
 # ANALYSIS OF A PATHWAY
 goname = 'GOBP_OXIDATIVE_PHOSPHORYLATION'
-goname2 = 'GOBP_RESPIRATORY_ELECTRON_TRANSPORT_CHAIN'
-# name = 'GOCC_INNER_MITOCHONDRIAL_MEMBRANE_PROTEIN_COMPLEX'
-# name = 'GOCC_MITOCHONDRIAL_ENVELOPE'
 
 pathgenes = subvertexdf %>% dplyr::filter(hgnc_symbol %in% subgsc[[goname]]) %>% dplyr::select(hgnc_symbol)
 subvertexdf[,goname] = ifelse(subvertexdf$hgnc_symbol %in% pathgenes$hgnc_symbol, 'yes', 'no')
 
-pathgenes = subvertexdf %>% dplyr::filter(hgnc_symbol %in% subgsc[[goname2]]) %>% dplyr::select(hgnc_symbol)
-subvertexdf[,goname2] = ifelse(subvertexdf$hgnc_symbol %in% pathgenes$hgnc_symbol, 'yes', 'no')
 
-# WGCNA NETWORK
+# WGCNA NETWORK Fig3A
 vertex_attr(subnetwork[[2]], goname) <- subvertexdf[,goname]
 createNetworkFromIgraph(subnetwork[[2]], paste(c(colunmname[[i]], '-WGCNA'),collapse ="_") )
-setVisualStyle("CL1PLUSLOGFC")
+# setVisualStyle("CL1PLUSLOGFC")
 
 
-a = sum(subvertexdf$hubgenes == 'yes' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'yes')
-b = sum(subvertexdf$hubgenes == 'yes' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'no')
-c = sum(subvertexdf$hubgenes == 'no' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'yes')
-d = sum(subvertexdf$hubgenes == 'no' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'no')
-
-
-df <- data.frame(gene.not.hub=c(c, d), 
-                gene.hub=c(a, b))
-row.names(df) <- c("In_GO", "not_in_GO")
-
-fisher.test(df)
-
-write.csv(file = '../results/geneinSalmon.csv',subvertexdf)
+# fisher exact test
+# a = sum(subvertexdf$hubgenes == 'yes' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'yes')
+# b = sum(subvertexdf$hubgenes == 'yes' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'no')
+# c = sum(subvertexdf$hubgenes == 'no' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'yes')
+# d = sum(subvertexdf$hubgenes == 'no' & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'no')
+# df <- data.frame(gene.not.hub=c(c, d),    gene.hub=c(a, b))
+# row.names(df) <- c("In_GO", "not_in_GO")
+# fisher.test(df)
+# write.csv(file = 'results/geneinSalmon.csv',subvertexdf)
+```
 
 
 
-# ARACNE NETWORK
-modulegenes = verticesdf$genes[verticesdf$mergedColors2A.diff %in% colunmname[[i]]] 
-# modulegenes = intersect(modulegenes,subvertexdf$genes[subvertexdf$hubgenes == 'yes'] ) 
-SubAracnenetworkGraphS = moduletfGraph(modulegenes,modulevertexdf = subvertexdf[,c(1,5:9)], td = 0, tw= 0)
-
-createNetworkFromIgraph(SubAracnenetworkGraphS, paste(c(colunmname[i], 'ARACNE hub'),collapse ="_") )
-setVisualStyle("CL1LOGFC")
-# setVisualStyle("CL1PLUS")
-
-TFvertexinfo = as.data.frame(vertex_attr(SubAracnenetworkGraphS) )  %>% 
-  rename(genes = name)
-a = data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>% rownames_to_column(var = 'genes')
-TFvertexinfo = TFvertexinfo %>% left_join(a, by = 'genes')
-
-
-univetriceDFsubGRN = TFvertexinfo %>% 
-  inner_join(vipertfinfoMS %>% 
-  dplyr::select(genes,TF:TF_LogFC.padj ), by = 'genes') %>% 
-  dplyr::select(genes, degree, hgnc_symbol, direction,logFC,Blood_Pressure_diastolic.corr_logfc,TF_BPD.pv:TF_LogFC.padj) 
-
-
-univetriceDFsubGRN = univetriceDFsubGRN %>% 
-  # left_join(data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>% 
-  #             rownames_to_column(var = 'genes'), by  = 'genes') %>% 
-  left_join(TFfile %>% select(EntrezGene.ID, EntrezGene.Description) %>% rename(genes = EntrezGene.ID), by  = 'genes')
-
-univetriceDFsubGRN %>% filter(degree>3, str_detect(EntrezGene.Description, 'zinc finger')  ) #11
-toptf = univetriceDFsubGRN %>% filter(degree>3)#20
-
-write.csv(toptf, file = '../results/toptf20.csv' )
-
-
-# univetriceDFsubGRN= univetriceDFsubGRN %>% select(-degree.x,-degree.y)
-
-# TF regulon tables
-moduletfactvityplot(name = colunmname[[i]],  TFinfo =univetriceDFsubGRN ,  t = 2 )
-
-  I = 3
-  name = "salmon"
-  TFinfo =univetriceDFsubGRN 
-  p1 = ggplot(TFinfo, aes(x = TF_LogFC.NES, y =logFC)) + 
-    geom_point(aes(size = degree, color = Blood_Pressure_diastolic.corr_logfc)) + 
-    scale_color_gradient2(low = 'green', high = 'magenta')+
-    theme_bw() + 
-    # stat_poly_eq(formula = y ~ x,
-    #              label.x = "right",
-    #              eq.with.lhs = "italic(hat(y))~`=`~",
-    #              aes(label = paste(..eq.label.., ..rr.label.., sep = "*plain(\",\")~")),
-    #              parse = TRUE) +geom_smooth(method=lm)+
-    geom_text_repel(data = TFinfo %>% filter(degree>=I ), aes(label = hgnc_symbol), max.overlaps=100 ) + labs(x = 'Inhibition',color ='Corrlation with DBP')
-  p1
-  jpeg(paste0('../results/',name,'_tf.jpg'), width = 600, height = 450,res = 110)
-  print(p1)
-  dev.off()
-
-
-  p1=ggplot(TFinfo %>% filter(degree>3, abs(TF_LogFC.NES)>1.96) , aes(x =reorder(hgnc_symbol, TF_LogFC.NES), y =TF_LogFC.NES, fill = degree))+
-  geom_bar(stat="identity") + 
-  scale_fill_gradient(low = 'white', high='darkred',limits = c(0,max(TFinfo$degree)))+coord_flip()+
-  # guides(fill = guide_legend(title.position = "left", title.hjust = TRUE))+
-  labs(y='Gene targets suppression (NES)',x='Gene Product (TF)',fill = 'Out-degree')
-  
-  p2=ggplot(TFinfo %>% filter(degree>3,abs(TF_LogFC.NES)>1.96) , aes(x =reorder(hgnc_symbol, TF_LogFC.NES), y =logFC, fill = Blood_Pressure_diastolic.corr_logfc))+
-  geom_bar(stat="identity") + 
-  scale_fill_gradient2(low = 'green', high='magenta')+coord_flip()+
-  labs(y='LPS response (logFC)',x='TF Producer (Gene)',fill = 'Correlation with DBP')
-  
-  
-  jpeg(paste0('../results/',name,'_tfandproducerBar.jpg'), width = 800, height = 500,res = 110)
-  print(ggarrange(p1,p2, ncol=2,widths = c(1, 1.2) ))
-  dev.off()
-  
-
- g=ggplot(univetriceDFsubGRN, aes(x = TF_LogFC.NES, y =TF_BPD.cor)) + 
-    geom_point(aes(size = degree)) + 
-    theme_bw() + 
-    stat_poly_eq(formula = y ~ x,
-                 label.x = "right",
-                 eq.with.lhs = "italic(hat(y))~`=`~",
-                 aes(label = paste(..eq.label.., ..rr.label.., sep = "*plain(\",\")~")),
-                 parse = TRUE) +geom_smooth(method=lm)+
-    geom_text_repel(data = univetriceDFsubGRN %>% filter(degree>=2 ), aes(label = hgnc_symbol) )
- 
- 
- jpeg(paste0('../results/TF activity', colunmname[[i]], ' combatlps center.jpg'), height = 500, width = 600)
-print(g)
-dev.off()
+# generate txt file for diffexpsfiter and TF list
+```{r}
+TFfile = read.csv('../data/DatabaseExtract_v_1.01.csv') # download from http://humantfs.ccbr.utoronto.ca/
+tflist = TFfile %>% filter(Is.TF. == "Yes", EntrezGene.ID != 'None') %>% 
+  dplyr::select(EntrezGene.ID) %>% 
+  mutate(EntrezGene.ID = as.numeric(EntrezGene.ID))
 
 ```
 
 
-# fIG 3C Salmon ATP5J
+
+# ARACNE NETWORK Fig S3A
+```{r}
+library(viper)
+library("gplots")
+source('viper_function.R')
+source('functions.R')
+library(RCy3)
+cytoscapePing()
+
+
+# Aracne network
+ARACNEnet = read.delim('data/network.txt')
+ARACNEnet$Regulator = as.character(ARACNEnet$Regulator)
+
+vertexname =data.frame(genes = unique(c(ARACNEnet$Regulator , ARACNEnet$Target)))
+unicolors.2Adiff <- col2hex(corrall2$mergedColors2A.diff)
+
+verticesdf = corrall2 %>%
+  mutate(unihex.2Adiff = unicolors.2Adiff) %>%
+    dplyr::right_join(vertexname, by='genes') %>%
+  mutate(TF = ifelse(genes %in% tflist$EntrezGene.ID , 'Yes', 'No') )
+
+verticesdf$TF[is.na(verticesdf$mergedColors2A.diff)]
+ARACNEnetGraph <- simplify(graph_from_data_frame(ARACNEnet,directed=TRUE,vertices = verticesdf),remove.multiple = TRUE)
+
+verticesdf = corrall2 %>%
+  mutate(unihex.2Adiff = unicolors.2Adiff) %>%
+    dplyr::right_join(vertexname, by='genes') %>%
+  mutate(TF = ifelse(genes %in% tflist$EntrezGene.ID , 'Yes', 'No') )
+
+# visualize aracne network of module salmon （Fig S3A）
+i=1
+modulegenes = verticesdf$genes[verticesdf$mergedColors2A.diff %in% colunmname[[i]]]
+# modulegenes = intersect(modulegenes,subvertexdf$genes[subvertexdf$hubgenes == 'yes'] )
+SubAracnenetworkGraphS = moduletfGraph(modulegenes,modulevertexdf = subvertexdf, td = 0, tw= 0)
+createNetworkFromIgraph(SubAracnenetworkGraphS, paste(c(colunmname[i], 'ARACNE hub'),collapse ="_") ) # you can set your own visual style in the cytoscape
+
+
+TFvertexinfo = as.data.frame(vertex_attr(SubAracnenetworkGraphS) )  %>% rename(genes = name)
+a = data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>% rownames_to_column(var = 'genes')
+TFvertexinfo = TFvertexinfo %>% left_join(a, by = 'genes')
+
+resms <- viper(diffexpsfiter, regulons,minsize = 2)
+
+# TF activity for logFC of LPS
+logfcmat = as.matrix(corrall2$logFC)
+rownames(logfcmat)=corrall2$genes
+
+tictoc::tic()
+dnull <- viperNullgene(expset= logfcmat , per= 10000)
+tictoc::toc()
+
+TFactivity_lps <- msviper(logfcmat, regulons, dnull, minsize = 2, cores = 1)
+tf_activity_lps = data.frame(TF_LogFC.NES = TFactivity_lps$es$nes,
+                              TF_LogFC.PV = TFactivity_lps$es$p.value,
+                              genes = names(TFactivity_lps$es$nes))
+# tf_activity_lps$TF_LogFC.padj <- p.adjust(tf_activity_lps$TF_LogFC.PV, method = 'fdr', n = nrow(tf_activity_lps))
+
+
+# vipertfinfoMS generation
+vipertfinfoMS = verticesdf %>% filter(genes %in% rownames(resms))
+
+# cortfBPDMS blood pressure
+traitiname = 'Blood_Pressure_diastolic'
+traiti = clin[,traitiname]
+cortfBPDMS <- as.data.frame(t(apply(resms[rownames(resms) %in% vipertfinfoMS$genes,], 1, function(x) { resms = cor.test(x, y = traiti, method =  "pearson")
+return(c(resms$p.value,resms$estimate))}))) %>% rename(TF_BPD.pv = 'V1', TF_BPD.cor = 'cor') %>% tibble::rownames_to_column(var = 'genes') %>% mutate(genes = as.character(genes))
+
+# traiti = clin$Blood_Pressure_systolic
+# cortfBPSMS <- as.data.frame(t(apply(resms[rownames(resms) %in% vipertfinfoMS$genes,], 1, function(x) { resms = cor.test(x, y = traiti, method =  "pearson")
+# return(c(resms$p.value,resms$estimate))}))) %>% rename(TF_BPS.pv = 'V1', TF_BPS.cor = 'cor') %>% tibble::rownames_to_column(var = 'genes') %>% mutate(genes = as.character(genes))
+
+# vipertfinfoMS CONNECTION
+vipertfinfoMS = vipertfinfoMS %>% left_join(cortfBPDMS , by = 'genes') %>% left_join(cortfBPSMS , by = 'genes') %>% left_join(tf_activity_lps , by = 'genes')
+vipertfinfoMS$BPDlabel = paste0(vipertfinfoMS$hgnc_symbol,'(',vipertfinfoMS$mergedColors2A.diff,')')
+
+
+# univetriceDFsubGRN = TFvertexinfo %>%
+#   inner_join(vipertfinfoMS %>%
+#   dplyr::select(genes,TF: BPDlabel), by = 'genes') %>%
+#   dplyr::select(genes, degree, hgnc_symbol, direction,logFC,Blood_Pressure_diastolic.corr_logfc,TF_BPD.pv:BPDlabel)
+# 
+# 
+# univetriceDFsubGRN = univetriceDFsubGRN %>%
+#   # left_join(data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>%
+#   #             rownames_to_column(var = 'genes'), by  = 'genes') %>%
+#   left_join(TFfile %>% select(EntrezGene.ID, EntrezGene.Description) %>% rename(genes = EntrezGene.ID), by  = 'genes')
+
+# univetriceDFsubGRN %>% filter(degree>3, str_detect(EntrezGene.Description, 'zinc finger')  ) #11
+
+# toptf = univetriceDFsubGRN %>% filter(degree>3)#20
+
+```
+
+# ARACNE NETWORK: Fig S3B
+```{r}
+library(tidytable)
+library(dplyr)
+
+# vertexinfo = corrall2 %>% filter(mergedColors2A.diff %in% 'salmon') 
+# subnetwork = chooseTopHubgenes(datExpr=t(diffexpsfiter), 
+#                                module=module, 
+#                                color='salmon', 
+#                                vertexinfo = vertexinfo,
+#                                top = 0.2, 
+#                                t = 0.5)
+# # hubgene =names(subnetwork[[1]])
+# # hubgene = subnetwork[[2]]
+# # hubgene = hubgene
+# hubgene = as.data.frame(vertex_attr(subnetwork[[2]]) )$genes  
+# 
+# 
+# 
+# regulons_df_ara <- regulons[ sapply(regulons, function(x) any(names(x$tfmode) %in% hubgene ))]
+# regulons_df_ara =  map_df(regulons_df_ara, .f = function(i) {
+#       tf_target = i$tfmode %>%
+#         enframe(name = "target", value="mor") %>%
+#         mutate(likelihood = i$likelihood)
+#     },
+#     .id = "tf")
+# 
+# sub_regulons_df_ara = regulons_df_ara %>% filter(target %in% hubgene)
+# univetriceDFSubAracnenetwork = data.frame(genes =unique(c(unique(sub_regulons_df_ara$tf), unique(sub_regulons_df_ara$target))))
+# univetriceDFSubAracnenetwork<-univetriceDFSubAracnenetwork %>% left_join(corrall2 , by = 'genes')
+# univetriceDFSubAracnenetwork$tf = if_else(univetriceDFSubAracnenetwork$genes %in% unique(sub_regulons_df_ara$tf),'Yes','No')
+# 
+# 
+# SubAracnenetworkGraph <- graph_from_data_frame(sub_regulons_df_ara,directed=TRUE,vertices = univetriceDFSubAracnenetwork )
+# E(SubAracnenetworkGraph)$weight = E(SubAracnenetworkGraph)$mor
+# SubAracnenetworkGraphS <- igraph::simplify(SubAracnenetworkGraph,remove.multiple = TRUE,remove.loops = TRUE)
+# 
+# degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))
+# V(SubAracnenetworkGraphS)$degree = degree
+# 
+# 
+# #FIGS3A
+# library(RCy3)
+# cytoscapePing()
+# createNetworkFromIgraph(SubAracnenetworkGraphS, 'GRN salmon' )
+# # setVisualStyle("CL1PLUS")
+  
+
+# SubAracnenetworkGraph <- graph_from_data_frame(sub_regulons_df_ara %>% filter(tf %in% c('7559','23099')),directed=TRUE,vertices = univetriceDFSubAracnenetwork )
+# E(SubAracnenetworkGraph)$weight = E(SubAracnenetworkGraph)$mor
+# SubAracnenetworkGraphS <- igraph::simplify(SubAracnenetworkGraph,remove.multiple = TRUE,remove.loops = TRUE)
+# 
+# library(RCy3)
+# cytoscapePing()
+# createNetworkFromIgraph(SubAracnenetworkGraphS, 'GRN salmon' )
+
+
+regulons_df_ara <- regulons[sapply(regulons, function(x) any(names(x$tfmode) %in% hubgene ))]
+regulons_df_ara =  map_df(regulons_df_ara, .f = function(i) {
+      tf_target = i$tfmode %>%
+        enframe(name = "target", value="mor") %>%
+        mutate(likelihood = i$likelihood)
+    },
+    .id = "tf")
+
+sub_regulons_df_ara = regulons_df_ara %>% filter(target %in% hubgene)
+
+salmonviper = vipertfinfoMS %>% filter(genes %in%  unique(sub_regulons_df_ara$tf))
+a = data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>% rownames_to_column(var = 'genes')
+salmonviper = salmonviper %>% left_join(a,by = 'genes')
+
+
+cortfBPDMS2 = cortfBPDMS %>%  right_join(salmonviper %>% select(genes, hgnc_symbol,degree))
+cortfBPDMS2$adjpv = p.adjust(cortfBPDMS2$TF_BPD.pv, method = 'fdr')
+  
+#Fig S3B
+ggplot(cortfBPDMS2 %>% filter(TF_BPD.pv<0.05) , aes(x =reorder(hgnc_symbol, degree), y =degree, fill = TF_BPD.cor))+
+  geom_bar(stat="identity") + 
+  scale_fill_gradient2(low = 'green', high='magenta')+coord_flip()+
+  # guides(fill = guide_legend(title.position = "left", title.hjust = TRUE))+
+  labs(y='Degree',x='TF',fill = 'Correlation')
+  
+
+```
+
+
+# FIG 3D
+```{r}
+library(ggpmisc)
+library(ggpubr)
+library(dplyr)
+dfplot = as.data.frame(t(diffexps_hgnc_f[c('ZBTB43','COX7C'),]))
+dfplot$DBP = clin$Blood_Pressure_diastolic
+
+p1 = ggplot(dfplot ,aes(x = ZBTB43, y = COX7C))+geom_point()+
+  stat_poly_eq(formula = y ~ x,
+              label.x = 0.95, label.y =0.1,
+              aes(label =paste("atop(", ..eq.label.., ",", ..p.value.label.., ")", sep = "")),
+  parse = TRUE)+
+  geom_smooth(method=lm, formula = y ~ x, size=3)
+
+dfplot = as.data.frame(t(diffexps_hgnc_f[c('ZNF12','ATP5J'),]))
+p2 = ggplot(dfplot,aes(x = ZNF12, y = ATP5J))+geom_point()+
+   ggpmisc::stat_poly_eq(formula = y ~ x,
+              label.x = 0.95, label.y =0.1,
+              aes(label =paste("atop(", ..eq.label.., ",", ..p.value.label.., ")", sep = "")),
+  parse = TRUE)+
+  geom_smooth(method=lm, formula = y ~ x, size=3)
+
+
+jpeg('results/ZBTB43-ZNF12.jpg', width = 1500,height = 700, res = 250)
+print(ggarrange(p1,p2, ncol = 2))
+dev.off()
+
+
+```
+
+
+```{r}
+# univetriceDFsubGRN= univetriceDFsubGRN %>% select(-degree.x,-degree.y)
+# TF regulon tables
+# moduletfactvityplot(name = colunmname[[i]],  TFinfo =univetriceDFsubGRN ,  t = 2 )
+
+  # I = 3
+  # name = "salmon"
+  # TFinfo =univetriceDFsubGRN 
+  # p1 = ggplot(TFinfo, aes(x = TF_LogFC.NES, y =logFC)) + 
+  #   geom_point(aes(size = degree, color = Blood_Pressure_diastolic.corr_logfc)) + 
+  #   scale_color_gradient2(low = 'green', high = 'magenta')+
+  #   theme_bw() + 
+  #   # stat_poly_eq(formula = y ~ x,
+  #   #              label.x = "right",
+  #   #              eq.with.lhs = "italic(hat(y))~`=`~",
+  #   #              aes(label = paste(..eq.label.., ..rr.label.., sep = "*plain(\",\")~")),
+  #   #              parse = TRUE) +geom_smooth(method=lm)+
+  #   geom_text_repel(data = TFinfo %>% filter(degree>=I ), aes(label = hgnc_symbol), max.overlaps=100 ) + labs(x = 'Inhibition',color ='Corrlation with DBP')
+  # p1
+  # jpeg(paste0('../results/',name,'_tf.jpg'), width = 600, height = 450,res = 110)
+  # print(p1)
+  # dev.off()
+
+  # p1=ggplot(TFinfo %>% filter(degree>3, abs(TF_LogFC.NES)>1.96) , aes(x =reorder(hgnc_symbol, TF_LogFC.NES), y =TF_LogFC.NES, fill = degree))+
+  # geom_bar(stat="identity") + 
+  # scale_fill_gradient(low = 'white', high='darkred',limits = c(0,max(TFinfo$degree)))+coord_flip()+
+  # # guides(fill = guide_legend(title.position = "left", title.hjust = TRUE))+
+  # labs(y='Gene targets suppression (NES)',x='Gene Product (TF)',fill = 'Out-degree')
+  # 
+  # p2=ggplot(TFinfo %>% filter(degree>3,abs(TF_LogFC.NES)>1.96) , aes(x =reorder(hgnc_symbol, TF_LogFC.NES), y =logFC, fill = Blood_Pressure_diastolic.corr_logfc))+
+  # geom_bar(stat="identity") + 
+  # scale_fill_gradient2(low = 'green', high='magenta')+coord_flip()+
+  # labs(y='LPS response (logFC)',x='TF Producer (Gene)',fill = 'Correlation with DBP')
+  # 
+  # 
+  # jpeg(paste0('results/',name,'_tfandproducerBar.jpg'), width = 800, height = 500,res = 110)
+  # print(ggarrange(p1,p2, ncol=2,widths = c(1, 1.2) ))
+  # dev.off()
+  
+
+#  g=ggplot(univetriceDFsubGRN, aes(x = TF_LogFC.NES, y =TF_BPD.cor)) + 
+#     geom_point(aes(size = degree)) + 
+#     theme_bw() + 
+#     stat_poly_eq(formula = y ~ x,
+#                  label.x = "right",
+#                  eq.with.lhs = "italic(hat(y))~`=`~",
+#                  aes(label = paste(..eq.label.., ..rr.label.., sep = "*plain(\",\")~")),
+#                  parse = TRUE) +geom_smooth(method=lm)+
+#     geom_text_repel(data = univetriceDFsubGRN %>% filter(degree>=2 ), aes(label = hgnc_symbol) )
+#  
+# 
+#  jpeg(paste0('results/TF activity', colunmname[[i]], ' combatlps center.jpg'), height = 500, width = 600)
+# print(g)
+# dev.off()
+
+```
+
+
+# fIG 3B 
 ```{r}
 
 # subvertexdf
@@ -899,9 +1244,9 @@ source('drug_function.R')
 # library(PharmacoGx)
 library(parallel) 
 
+# please download the GSE files
 drugfilepath = 'G:/CTMM/CTMM by Chang/codes/AnalysisAfterClusteringProject/referencefile/'
 GSEname = c('GSE70138','GSE92742')
-
 gse70138_info = loadGSE(GSEname[1], drugfilepath)
 gse92742_info = loadGSE(GSEname[2], drugfilepath)
 
@@ -934,10 +1279,10 @@ druglistCS <- do.call(rbind, parallel::parLapply(cl, cell_line,  function(x) f(x
 stopCluster(cl)
 
 df <- apply(druglistCS,2,as.character)
-write.csv(df,file = '../results/druglistCSSalmonhub.csv', row.names = FALSE)
+write.csv(df,file = 'results/druglistCSSalmonhub.csv', row.names = FALSE)
 rm(df)
 
-df = read.csv('../results/druglistCSSalmonhub.csv')
+df = read.csv('results/druglistCSSalmonhub.csv')
 finallist.filter = df %>% mutate(p.Adj = p.adjust(df$PValue, method = "fdr")) %>%
   filter(p.Adj<0.05,pert_iname !='DMSO',Connectivity>0) %>% 
   top_n(20, wt =-log10(PValue) )%>% 
