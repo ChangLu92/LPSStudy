@@ -1,5 +1,5 @@
 ---
-title: "figures"
+title: "All figures of LPS study"
 output: ioslides_presentation
 date: "2022-09-12"
 ---
