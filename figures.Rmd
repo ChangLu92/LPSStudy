@@ -924,8 +924,6 @@ tflist = TFfile %>% filter(Is.TF. == "Yes", EntrezGene.ID != 'None') %>%
 
 ```
 
-
-
 # ARACNE NETWORK Fig S3A
 ```{r}
 library(viper)
@@ -994,88 +992,18 @@ traiti = clin[,traitiname]
 cortfBPDMS <- as.data.frame(t(apply(resms[rownames(resms) %in% vipertfinfoMS$genes,], 1, function(x) { resms = cor.test(x, y = traiti, method =  "pearson")
 return(c(resms$p.value,resms$estimate))}))) %>% rename(TF_BPD.pv = 'V1', TF_BPD.cor = 'cor') %>% tibble::rownames_to_column(var = 'genes') %>% mutate(genes = as.character(genes))
 
-# traiti = clin$Blood_Pressure_systolic
-# cortfBPSMS <- as.data.frame(t(apply(resms[rownames(resms) %in% vipertfinfoMS$genes,], 1, function(x) { resms = cor.test(x, y = traiti, method =  "pearson")
-# return(c(resms$p.value,resms$estimate))}))) %>% rename(TF_BPS.pv = 'V1', TF_BPS.cor = 'cor') %>% tibble::rownames_to_column(var = 'genes') %>% mutate(genes = as.character(genes))
 
 # vipertfinfoMS CONNECTION
 vipertfinfoMS = vipertfinfoMS %>% left_join(cortfBPDMS , by = 'genes') %>% left_join(cortfBPSMS , by = 'genes') %>% left_join(tf_activity_lps , by = 'genes')
 vipertfinfoMS$BPDlabel = paste0(vipertfinfoMS$hgnc_symbol,'(',vipertfinfoMS$mergedColors2A.diff,')')
 
 
-# univetriceDFsubGRN = TFvertexinfo %>%
-#   inner_join(vipertfinfoMS %>%
-#   dplyr::select(genes,TF: BPDlabel), by = 'genes') %>%
-#   dplyr::select(genes, degree, hgnc_symbol, direction,logFC,Blood_Pressure_diastolic.corr_logfc,TF_BPD.pv:BPDlabel)
-# 
-# 
-# univetriceDFsubGRN = univetriceDFsubGRN %>%
-#   # left_join(data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>%
-#   #             rownames_to_column(var = 'genes'), by  = 'genes') %>%
-#   left_join(TFfile %>% select(EntrezGene.ID, EntrezGene.Description) %>% rename(genes = EntrezGene.ID), by  = 'genes')
-
-# univetriceDFsubGRN %>% filter(degree>3, str_detect(EntrezGene.Description, 'zinc finger')  ) #11
-
-# toptf = univetriceDFsubGRN %>% filter(degree>3)#20
-
 ```
+
 
 # ARACNE NETWORK: Fig S3B
 ```{r}
 library(tidytable)
-library(dplyr)
-
-# vertexinfo = corrall2 %>% filter(mergedColors2A.diff %in% 'salmon') 
-# subnetwork = chooseTopHubgenes(datExpr=t(diffexpsfiter), 
-#                                module=module, 
-#                                color='salmon', 
-#                                vertexinfo = vertexinfo,
-#                                top = 0.2, 
-#                                t = 0.5)
-# # hubgene =names(subnetwork[[1]])
-# # hubgene = subnetwork[[2]]
-# # hubgene = hubgene
-# hubgene = as.data.frame(vertex_attr(subnetwork[[2]]) )$genes  
-# 
-# 
-# 
-# regulons_df_ara <- regulons[ sapply(regulons, function(x) any(names(x$tfmode) %in% hubgene ))]
-# regulons_df_ara =  map_df(regulons_df_ara, .f = function(i) {
-#       tf_target = i$tfmode %>%
-#         enframe(name = "target", value="mor") %>%
-#         mutate(likelihood = i$likelihood)
-#     },
-#     .id = "tf")
-# 
-# sub_regulons_df_ara = regulons_df_ara %>% filter(target %in% hubgene)
-# univetriceDFSubAracnenetwork = data.frame(genes =unique(c(unique(sub_regulons_df_ara$tf), unique(sub_regulons_df_ara$target))))
-# univetriceDFSubAracnenetwork<-univetriceDFSubAracnenetwork %>% left_join(corrall2 , by = 'genes')
-# univetriceDFSubAracnenetwork$tf = if_else(univetriceDFSubAracnenetwork$genes %in% unique(sub_regulons_df_ara$tf),'Yes','No')
-# 
-# 
-# SubAracnenetworkGraph <- graph_from_data_frame(sub_regulons_df_ara,directed=TRUE,vertices = univetriceDFSubAracnenetwork )
-# E(SubAracnenetworkGraph)$weight = E(SubAracnenetworkGraph)$mor
-# SubAracnenetworkGraphS <- igraph::simplify(SubAracnenetworkGraph,remove.multiple = TRUE,remove.loops = TRUE)
-# 
-# degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))
-# V(SubAracnenetworkGraphS)$degree = degree
-# 
-# 
-# #FIGS3A
-# library(RCy3)
-# cytoscapePing()
-# createNetworkFromIgraph(SubAracnenetworkGraphS, 'GRN salmon' )
-# # setVisualStyle("CL1PLUS")
-  
-
-# SubAracnenetworkGraph <- graph_from_data_frame(sub_regulons_df_ara %>% filter(tf %in% c('7559','23099')),directed=TRUE,vertices = univetriceDFSubAracnenetwork )
-# E(SubAracnenetworkGraph)$weight = E(SubAracnenetworkGraph)$mor
-# SubAracnenetworkGraphS <- igraph::simplify(SubAracnenetworkGraph,remove.multiple = TRUE,remove.loops = TRUE)
-# 
-# library(RCy3)
-# cytoscapePing()
-# createNetworkFromIgraph(SubAracnenetworkGraphS, 'GRN salmon' )
-
 
 regulons_df_ara <- regulons[sapply(regulons, function(x) any(names(x$tfmode) %in% hubgene ))]
 regulons_df_ara =  map_df(regulons_df_ara, .f = function(i) {
@@ -1110,7 +1038,7 @@ ggplot(cortfBPDMS2 %>% filter(TF_BPD.pv<0.05) , aes(x =reorder(hgnc_symbol, degr
 ```{r}
 library(ggpmisc)
 library(ggpubr)
-library(dplyr)
+
 dfplot = as.data.frame(t(diffexps_hgnc_f[c('ZBTB43','COX7C'),]))
 dfplot$DBP = clin$Blood_Pressure_diastolic
 
@@ -1134,64 +1062,6 @@ jpeg('results/ZBTB43-ZNF12.jpg', width = 1500,height = 700, res = 250)
 print(ggarrange(p1,p2, ncol = 2))
 dev.off()
 
-
-```
-
-
-```{r}
-# univetriceDFsubGRN= univetriceDFsubGRN %>% select(-degree.x,-degree.y)
-# TF regulon tables
-# moduletfactvityplot(name = colunmname[[i]],  TFinfo =univetriceDFsubGRN ,  t = 2 )
-
-  # I = 3
-  # name = "salmon"
-  # TFinfo =univetriceDFsubGRN 
-  # p1 = ggplot(TFinfo, aes(x = TF_LogFC.NES, y =logFC)) + 
-  #   geom_point(aes(size = degree, color = Blood_Pressure_diastolic.corr_logfc)) + 
-  #   scale_color_gradient2(low = 'green', high = 'magenta')+
-  #   theme_bw() + 
-  #   # stat_poly_eq(formula = y ~ x,
-  #   #              label.x = "right",
-  #   #              eq.with.lhs = "italic(hat(y))~`=`~",
-  #   #              aes(label = paste(..eq.label.., ..rr.label.., sep = "*plain(\",\")~")),
-  #   #              parse = TRUE) +geom_smooth(method=lm)+
-  #   geom_text_repel(data = TFinfo %>% filter(degree>=I ), aes(label = hgnc_symbol), max.overlaps=100 ) + labs(x = 'Inhibition',color ='Corrlation with DBP')
-  # p1
-  # jpeg(paste0('../results/',name,'_tf.jpg'), width = 600, height = 450,res = 110)
-  # print(p1)
-  # dev.off()
-
-  # p1=ggplot(TFinfo %>% filter(degree>3, abs(TF_LogFC.NES)>1.96) , aes(x =reorder(hgnc_symbol, TF_LogFC.NES), y =TF_LogFC.NES, fill = degree))+
-  # geom_bar(stat="identity") + 
-  # scale_fill_gradient(low = 'white', high='darkred',limits = c(0,max(TFinfo$degree)))+coord_flip()+
-  # # guides(fill = guide_legend(title.position = "left", title.hjust = TRUE))+
-  # labs(y='Gene targets suppression (NES)',x='Gene Product (TF)',fill = 'Out-degree')
-  # 
-  # p2=ggplot(TFinfo %>% filter(degree>3,abs(TF_LogFC.NES)>1.96) , aes(x =reorder(hgnc_symbol, TF_LogFC.NES), y =logFC, fill = Blood_Pressure_diastolic.corr_logfc))+
-  # geom_bar(stat="identity") + 
-  # scale_fill_gradient2(low = 'green', high='magenta')+coord_flip()+
-  # labs(y='LPS response (logFC)',x='TF Producer (Gene)',fill = 'Correlation with DBP')
-  # 
-  # 
-  # jpeg(paste0('results/',name,'_tfandproducerBar.jpg'), width = 800, height = 500,res = 110)
-  # print(ggarrange(p1,p2, ncol=2,widths = c(1, 1.2) ))
-  # dev.off()
-  
-
-#  g=ggplot(univetriceDFsubGRN, aes(x = TF_LogFC.NES, y =TF_BPD.cor)) + 
-#     geom_point(aes(size = degree)) + 
-#     theme_bw() + 
-#     stat_poly_eq(formula = y ~ x,
-#                  label.x = "right",
-#                  eq.with.lhs = "italic(hat(y))~`=`~",
-#                  aes(label = paste(..eq.label.., ..rr.label.., sep = "*plain(\",\")~")),
-#                  parse = TRUE) +geom_smooth(method=lm)+
-#     geom_text_repel(data = univetriceDFsubGRN %>% filter(degree>=2 ), aes(label = hgnc_symbol) )
-#  
-# 
-#  jpeg(paste0('results/TF activity', colunmname[[i]], ' combatlps center.jpg'), height = 500, width = 600)
-# print(g)
-# dev.off()
 
 ```
 
@@ -1244,15 +1114,16 @@ source('drug_function.R')
 # library(PharmacoGx)
 library(parallel) 
 
-# please download the GSE files
-drugfilepath = 'G:/CTMM/CTMM by Chang/codes/AnalysisAfterClusteringProject/referencefile/'
+# please download the LINCS CMap L1000 data GSE 92742 and GSE70138 based on this link:https://clue.io/connectopedia/lincs_cmap_data, and save them to drugfilepath
+
+drugfilepath = '../data/referencefile/'
 GSEname = c('GSE70138','GSE92742')
 gse70138_info = loadGSE(GSEname[1], drugfilepath)
 gse92742_info = loadGSE(GSEname[2], drugfilepath)
 
 
 cell_line = c('HL60','THP1','NOMO1','SKM1','PL21','U266','HS27A')
-target_list = vertexinfo %>% filter(hubgenes == 'yes' )
+target_list = subvertexdf %>% filter(hubgenes == 'yes' )
 
 f <- function(x, target_list, funname){
   print(x)
@@ -1272,21 +1143,23 @@ f <- function(x, target_list, funname){
   tictoc::toc()
 }
 
-cl <- makeCluster(5)
-clusterEvalQ(cl, c(source("drug_function.R"), library(dplyr), library(tibble)))
-clusterExport(cl, c('f', 'gse70138_info','gse92742_info','target_list','drugfilepath'))
-druglistCS <- do.call(rbind, parallel::parLapply(cl, cell_line,  function(x) f(x, target_list, funname = 'CS')))
-stopCluster(cl)
+# # this will take a long time. The results are saved in 'results/druglistCSSalmonhub.csv', so you can also just read this csv file
+# cl <- makeCluster(5)
+# clusterEvalQ(cl, c(source("drug_function.R"), library(dplyr), library(tibble)))
+# clusterExport(cl, c('f', 'gse70138_info','gse92742_info','target_list','drugfilepath'))
+# druglistCS <- do.call(rbind, parallel::parLapply(cl, cell_line,  function(x) f(x, target_list, funname = 'CS')))
+# stopCluster(cl)
+# df <- apply(druglistCS,2,as.character)
+# write.csv(df,file = 'data/druglistCSSalmonhub.csv', row.names = FALSE)
 
-df <- apply(druglistCS,2,as.character)
-write.csv(df,file = 'results/druglistCSSalmonhub.csv', row.names = FALSE)
-rm(df)
 
-df = read.csv('results/druglistCSSalmonhub.csv')
+df = read.csv('data/druglistCSSalmonhub.csv')
+# this is the table for visualizing Fig 4
 finallist.filter = df %>% mutate(p.Adj = p.adjust(df$PValue, method = "fdr")) %>%
-  filter(p.Adj<0.05,pert_iname !='DMSO',Connectivity>0) %>% 
-  top_n(20, wt =-log10(PValue) )%>% 
+  filter(p.Adj<0.05,pert_iname !='DMSO',Connectivity>0.5) %>% 
+  top_n(20, wt = -log10(PValue) )%>% 
   mutate(label = paste(pert_iname,"(",cell_id, pert_itime,")"))
+
 
 
 ```
