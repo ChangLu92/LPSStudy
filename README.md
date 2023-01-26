@@ -4,4 +4,4 @@ How the cardiovascular disease (CVD) risk factors (e.g. a number of biological f
 
 This study is to examine the impact of CVD risk factors on monocyte transcriptional responses to an infectious stimulus.
 
-
+The datasets and codes generated during and/or analyzed during this study are available from the corresponding author on reasonable request.
