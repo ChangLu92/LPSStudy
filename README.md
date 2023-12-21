@@ -39,8 +39,10 @@ For GRN generation, you need to download ARACNe-AP
 
 
 
-Data analysis
+Data analysis 
 ------------------------------------
+(You can run all the steps below and then run "Figure Visualization" to reproduce all the figures in the manuscript. However, since all outputs from 'Data analysis' are already saved in the 'data' folder, you can also skip this and just run "Figure Visualization").
+
 Step 1: 1_DFWGCNA.rmd ("lIMMA and WGCNA analysis for LPS response gene matrix" (WGCNA result has been pre-calculated to prevent the clustering algorithm from generating random results, which may result in the figures in the manuscript not being reproduced.) 
 input: data/geneinfo.rds : gene names and id; 
 Output: 'data/DFWGCNA.rds'
@@ -66,7 +68,7 @@ output: vipertfinfoMS.rds， cortfBPDMS.rds  (if you recalculate VIPER, you may 
 output : ARACNEnet.rds， ARACNEvertices.rds，ARACNEregulons.rds
 
 
-Figure visualization (You should run all steps in 'Data analysis' above first)
+Figure visualization 
 --------------------------------
 1. Figures related to the whole 7933 genes (Fig 1 2, S1,  S3): Figure_whole_01.rmd
 
