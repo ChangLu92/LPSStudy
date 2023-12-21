@@ -25,12 +25,13 @@ GO file from GSEA website http://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
 TFs file download from http://humantfs.ccbr.utoronto.ca/
 
 
+
 Softwares
 ----------------------------------
 
 For network visualization, you need to install Cytoscape
 
-For GRN generation, youo need to download ARACNe-AP
+For GRN generation, you need to download ARACNe-AP
 
 
 
@@ -57,10 +58,24 @@ output: bayesiannetwork.rds
 
 Step 3: 3_TF_analysis.Rmd, TF analysis using Aracne and viper
 input:'data/corrall.rds' from step 2， LPSgeneexpr.RData
-output: vipertfinfoMS.rds， cortfBPDMS.rds ARACNEnet.rds， ARACNEvertices.rds，ARACNEregulons.rds
+output: vipertfinfoMS.rds， cortfBPDMS.rds  (if you recalculate VIPER, you may get slightly different results for Figure S4B)
+output : ARACNEnet.rds， ARACNEvertices.rds，ARACNEregulons.rds
 
 
 Figure visualization
 --------------------------------
+1. Figures related to the whole 7933 genes (Fig 1 2, S1, S2 S3): Figure_whole_01.rmd
+
+
+2. Figures related to module Salmon (Fig 3 4, S4): Figure_Salmon_02.rmd
+
+
+3. Additional analysis: add_Analysis.rmd
+
+
+
+
+
+
 
 
