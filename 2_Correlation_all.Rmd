@@ -1,0 +1,86 @@
+---
+title: "calculate the correaltion"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(dplyr)
+library(tibble)
+library(ggplot2)
+```
+
+
+# load wgcna clusters and clin info
+```{r}
+allgenesDFlpsfilter <- readRDS('data/DFWGCNA.rds')
+clin <-readRDS( 'data/riskfactor14.rds')
+load('data/LPSgeneexpr.RData')
+```
+
+
+
+# CORRALL2: calculate correlation of clinal traits with baseline, lps, and lps response. 
+```{r}
+
+# lps: correlation with all traits
+corrtraits = sapply(clin, function(i) {
+  apply(normlps, 1, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    return( cbind(res$p.value,res$estimate) )
+    })
+})
+corr_lpspv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  %>% mutate(genes = rownames(normlps))
+corr_lps = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) %>% mutate(genes = rownames(normlps))
+
+# baseline: correlation with all traits
+corrtraits = sapply(clin, function(i) {
+  apply(normbase, 1, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    return( cbind(res$p.value,res$estimate) )
+    })
+})
+corr_basepv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  %>% mutate(genes = rownames(normbase))
+corr_base = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) %>% mutate(genes = rownames(normbase))
+
+
+# lpsresponse: correlation with all traits
+corrtraits = sapply(clin, function(i) {
+  apply(diffexpsfiter, 1, function(j) { 
+    res = cor.test(x=j, y = i , method =  "pearson");
+    return(cbind(res$p.value,res$estimate) )
+    })
+})
+corr_pv = data.frame(corrtraits[seq(1,nrow(corrtraits)-1,by=2), ])  %>% mutate(genes = rownames(diffexpsfiter))
+corr_logfc = data.frame(corrtraits[seq(2,nrow(corrtraits),by=2), ] ) %>% mutate(genes = rownames(diffexpsfiter))
+
+
+corrall2 = allgenesDFlpsfilter %>%
+  dplyr::rename( lpsinfo = 'LPS-TLR4-GO') %>%
+ # dplyr::select(-mergedColors2C) %>%
+   left_join(corr_lps, by = 'genes') %>%
+   left_join(corr_lpspv, by = 'genes', suffix = c(".corr_lps", ".corr_lps_pv"))  %>%
+   left_join(corr_base, by = 'genes') %>%
+   left_join(corr_basepv, by = 'genes', suffix = c(".corr_base", ".corr_base_pv"))%>%
+   left_join(corr_logfc, by = 'genes') %>%
+   left_join(corr_pv, by = 'genes', suffix = c(".corr_logfc", ".corr_logfc_pv"))
+
+corrall2$direction[corrall2$logFC>0] <- 'up'
+corrall2$direction[corrall2$logFC<0] <- 'down'
+
+```
+
+# save to 'corrall2.rds'
+```{r}
+saveRDS(corrall2, 'data/corrall.rds')
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

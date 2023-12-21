@@ -1,0 +1,73 @@
+---
+title: "GO enrichment analysis"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+source('function/multiORA.r')
+library(dplyr)
+library(ggplot2)
+```
+
+# pathway database info
+```{r}
+# You can download the GO file and Pathway file from GSEA website http://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
+
+GOFILE = 'data/c5.go.v7.4.symbols.gmt'
+pathways = "/Volumes/My Passport/synchronization/CTMM/CTMM by Chang/codes/AnalysisAfterClusteringProject/referencefile/c2.cp.v7.2.symbols.gmt"
+gsc = loadGSC(GOFILE)
+subgsc = gsc$gsc
+
+```
+
+#load correlation matrix 
+```{r}
+corrall2 = readRDS('data/corrall.rds')
+```
+
+
+# calculate ORA 
+```{r}
+CHOICEora = expand.grid(reg = c('up','dn'),
+                     database = c('GO'))
+# CHOICEora = sapply(CHOICEora,as.character)
+listnameora <- apply(CHOICEora, 1 , function(x) paste(x, collapse = "_"))
+PathwayList= vector("list", length(unique(corrall2$mergedColors2A.diff)))
+names(PathwayList) = unique(corrall2$mergedColors2A.diff)
+variable = "turquoise" 
+for (variable in unique(corrall2$mergedColors2A.diff)) {
+  geneset = corrall2 %>% dplyr::filter(mergedColors2A.diff %in% variable & !is.na(hgnc_symbol) & hgnc_symbol!='')
+  PathwayList[[variable]] <- apply(CHOICEora, 1, function(x) multiORA(geneset,
+                  NESname = 'logFC',
+                  PVname = "adj.P.Val",
+                  genename = "hgnc_symbol",
+                  cases=x, 
+                  bg = corrall2[!is.na(corrall2$hgnc_symbol), 'hgnc_symbol'],
+                  pvcutoff = 1))
+  names(PathwayList[[variable]]) <- listnameora
+}
+
+```
+
+# save GO ORA result
+```{r}
+saveRDS(PathwayList,file = 'data/GOAlllist.rds')
+```
+
+
+
+
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

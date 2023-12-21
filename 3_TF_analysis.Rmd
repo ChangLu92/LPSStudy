@@ -1,0 +1,104 @@
+---
+title: "TF analysis using Aracne and viper"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+```{r}
+library(dplyr)
+library(viper)
+library(tibble)
+library(gplots)
+```
+
+```{r}
+
+corrall2 = readRDS('data/corrall.rds')
+load('data/LPSgeneexpr.RData')
+```
+
+
+# read TF list
+```{r}
+TFfile = read.csv('data/DatabaseExtract_v_1.01.csv') # download from http://humantfs.ccbr.utoronto.ca/
+tflist = TFfile %>% filter(Is.TF. == "Yes", EntrezGene.ID != 'None') %>% 
+  dplyr::select(EntrezGene.ID) %>% 
+  mutate(EntrezGene.ID = as.numeric(EntrezGene.ID))
+```
+
+
+# generate a ARACNEnet
+```{r}
+# load Aracne network and regulons
+adjfile <- 'data/network.txt' # aracne network
+regulons <- aracne2regulon(adjfile, diffexpsfiter, verbose = FALSE)  
+ARACNEnet = read.delim(adjfile)
+ARACNEnet$Regulator = as.character(ARACNEnet$Regulator)  
+
+vertexname =data.frame(genes = unique(c( as.character(ARACNEnet$Regulator)  , ARACNEnet$Target)))
+unicolors.2Adiff <- col2hex(corrall2$mergedColors2A.diff)
+verticesdf = corrall2 %>%
+  mutate(unihex.2Adiff = unicolors.2Adiff) %>%
+    dplyr::right_join(vertexname, by='genes') %>%
+  mutate(TF = ifelse(genes %in% tflist$EntrezGene.ID , 'Yes', 'No') )
+```
+
+
+```{r}
+saveRDS(ARACNEnet, 'data/ARACNEnet.rds')
+saveRDS(verticesdf, 'data/ARACNEvertices.rds')
+saveRDS(regulons, 'data/ARACNEregulons.rds')
+```
+
+
+
+# TF activity using viper
+```{r}
+
+resms <- viper(diffexpsfiter, regulons,minsize = 2)
+# TF activity for logFC of LPS
+logfcmat = as.matrix(corrall2$logFC)
+rownames(logfcmat)=corrall2$genes
+
+tictoc::tic()
+dnull <- viperNullgene(expset= logfcmat , per= 10000)
+tictoc::toc()
+
+TFactivity_lps <- msviper(logfcmat, regulons, dnull, minsize = 2, cores = 1)
+tf_activity_lps = data.frame(TF_LogFC.NES = TFactivity_lps$es$nes,
+                              TF_LogFC.PV = TFactivity_lps$es$p.value,
+                              genes = names(TFactivity_lps$es$nes))
+
+# vipertfinfoMS generation
+vipertfinfoMS = verticesdf %>% filter(genes %in% rownames(resms))
+
+
+# cortfBPDMS blood pressure
+traitiname = 'Blood_Pressure_diastolic'
+traiti = clin[,traitiname]
+cortfBPDMS <- as.data.frame(t(apply(resms[rownames(resms) %in% vipertfinfoMS$genes,], 1, function(x) { resms = cor.test(x, y = traiti, method =  "pearson")
+return(c(resms$p.value,resms$estimate))}))) %>% rename(TF_BPD.pv = 'V1', TF_BPD.cor = 'cor') %>% tibble::rownames_to_column(var = 'genes') %>% mutate(genes = as.character(genes))
+
+
+# vipertfinfoMS CONNECTION
+vipertfinfoMS = vipertfinfoMS %>% left_join(cortfBPDMS , by = 'genes') %>% left_join(tf_activity_lps , by = 'genes')
+vipertfinfoMS$BPDlabel = paste0(vipertfinfoMS$hgnc_symbol,'(',vipertfinfoMS$mergedColors2A.diff,')')
+```
+
+
+```{r}
+saveRDS(vipertfinfoMS, 'data/vipertfinfoMS.rds')
+saveRDS(cortfBPDMS, 'data/cortfBPDMS.rds')
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

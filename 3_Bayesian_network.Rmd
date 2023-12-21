@@ -1,0 +1,93 @@
+---
+title: "Bayesian Network"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+# WGCNA: bayesian NETWORK
+```{r}
+library(bnlearn)
+library(WGCNA)
+library(dplyr)
+```
+
+
+# load data
+```{r}
+corrall2 = readRDS('data/corrall.rds')
+load('data/LPSgeneexpr.RData')
+```
+
+
+
+# bootstrapping to generate R networks
+```{r}
+R = 1000
+m = 20
+MEnames = c("turquoise" , "lightyellow", "green" , "greenyellow" ,"brown", "red" , "pink" , "salmon"  , "cyan","darkgreen")
+
+
+bayesian.network.ALL  = vector("list", R)
+for (i in 1:R) {
+  res = matrix(nrow = ncol(diffexpsfiter), ncol = length(MEnames))
+  colnames(res) = MEnames
+  res = data.frame(res)
+  for (mes in MEnames) {
+    selectedgenes <- corrall2 %>% filter( mergedColors2A.diff == mes) %>% select(genes)
+    subcluster <- diffexpsfiter[ rownames(diffexpsfiter) %in% selectedgenes$genes,]
+    resampling = sample(nrow(subcluster), m, replace = TRUE)
+    res[,mes] <- colMeans(subcluster[resampling,])
+  }
+  
+  res$BPD = clin$Blood_Pressure_diastolic
+  res = data.frame(scale(res))
+  
+  # bayesian.network = hc(res %>% filter(!is.na(BPD) ))
+  bayesian.network  = bnlearn::structural.em(res, impute = "exact")
+  bayesian.network.ALL[[i]] = bayesian.network
+  print(i)
+}
+```
+
+
+```{r}
+strength = custom.strength(networks = bayesian.network.ALL, 
+                nodes= c("turquoise" , "lightyellow", "green" , "greenyellow" ,"brown", "red" , "pink" , "salmon"  , "cyan","darkgreen", "BPD"), 
+                weights = NULL, cpdag = TRUE, debug = FALSE)
+
+
+avg.net = averaged.network(strength )
+strength.plot(avg.net, strength, shape = "ellipse")
+```
+
+
+# plot threshold of strength
+```{r}
+par(mfrow = c(1, 1))
+plot(strength)
+
+```
+
+
+```{r}
+bayesian.network.edges = strength[strength$direction > 0.5 & strength$strength > avg.net$learning$args$threshold,]
+saveRDS(bayesian.network.edges, 'data/bayesiannetwork.rds')
+```
+
+
+
+
+
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
