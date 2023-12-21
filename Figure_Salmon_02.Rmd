@@ -1,0 +1,316 @@
+---
+title: "Analysis and plots based on Salmon (Fig 3, 4 S3)"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+library(igraph)
+library(dplyr)
+library(piano)
+library(WGCNA)
+library(RCy3)
+
+
+library(ComplexHeatmap)
+library(ggplot2)
+library(gplots)
+library(ggrepel)
+library(ggpmisc)
+library(ggnewscale)
+library(ggpubr)
+library(forcats)
+
+```
+
+
+
+```{r}
+corrall2 <- readRDS('data/corrall.rds')
+ARACNEnet <- readRDS('data/ARACNEnet.rds')
+verticesdf <- readRDS('data/ARACNEvertices.rds')
+vipertfinfoMS <-readRDS('data/vipertfinfoMS.rds')
+regulons <- readRDS('data/ARACNEregulons.rds')
+cortfBPDMS <- readRDS('data/cortfBPDMS.rds')
+clin <- readRDS('data/riskfactor14.rds')
+load('data/LPSgeneexpr.RData')
+GOFILE = 'data/c5.go.v7.4.symbols.gmt'
+gsc = loadGSC(GOFILE)
+subgsc = gsc$gsc
+rm(gsc)
+```
+
+
+# select Salmon
+```{r}
+module = corrall2$mergedColors2A.diff
+names(module) = corrall2$genes
+colunmname = "salmon"
+
+
+# WGCNA NETWORK SALMON
+source('function/graph_function.R')
+
+salmonNet = generateSubnetwork(datExpr=t(diffexpsfiter), 
+                               module=module, 
+                               color=colunmname, 
+                               power = 2,
+                               t = 0.3)
+vertexinfo = as.data.frame(vertex_attr(salmonNet) ) 
+vertexinfo$genes = vertexinfo$name
+vertexinfo = vertexinfo %>% dplyr::left_join(corrall2, by = 'genes' )
+vertexinfo$direction[vertexinfo$logFC > 0] = 1 
+vertexinfo$direction[vertexinfo$logFC < 0] = -1
+vertex_attr(salmonNet) <- as.list(vertexinfo)
+
+subvertexdf = vertexinfo %>% dplyr::select(genes, hgnc_symbol, logFC, DBP.corr_logfc) 
+goname = 'GOBP_OXIDATIVE_PHOSPHORYLATION'
+pathgenes = subvertexdf %>% filter(hgnc_symbol %in% subgsc[[goname]]) %>% select(hgnc_symbol)
+subvertexdf[,goname] <- ifelse(subvertexdf$hgnc_symbol %in% pathgenes$hgnc_symbol, 'yes', 'no')  #subvertexdf is vertex of salmon wgcna network including the info of hubgenes
+vertex_attr(salmonNet, goname) <- subvertexdf[,goname]
+
+
+# write.csv(file = 'results/geneinSalmon.csv',subvertexdf)
+```
+
+
+
+# Aggregate Ranking (RRA) of Multiple Network Centrality Metrics to identify hubgenes
+```{r}
+source('function/graph_function.R')
+ranked_pv = calcHubgenes(vertexdf = subvertexdf, genename = 'genes', network =salmonNet)
+ranked_pv = ranked_pv %>% dplyr::rename(genes  = 'Name',  hubgenepv= 'Score') 
+subvertexdf = subvertexdf %>% dplyr::left_join(ranked_pv, by = 'genes')
+vertex_attr(salmonNet, 'hubgenepv') <- subvertexdf$hubgenepv
+hubgene = ranked_pv$genes[ranked_pv$hubgenepv<0.05]
+subvertexdf$hubgene <- 'No'
+subvertexdf$hubgene[subvertexdf$hubgenepv < 0.05] <- 'Yes'
+vertex_attr(salmonNet, 'hubgene') <- subvertexdf$hubgene
+
+```
+
+
+# Fig 3A
+```{r}
+cytoscapePing()
+# WGCNA NETWORK Fig3A, edge and node size and color can be adjusted in cytoscope 
+createNetworkFromIgraph(salmonNet, paste(c(colunmname, '-WGCNA'),collapse ="_") )
+```
+
+
+# fisher exact test
+```{r}
+a = sum(subvertexdf$hubgenepv < 0.05 & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'yes')
+b = sum(subvertexdf$hubgenepv < 0.05 & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'no')
+c = sum(subvertexdf$hubgenepv > 0.05 & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'yes')
+d = sum(subvertexdf$hubgenepv > 0.05 & subvertexdf$GOBP_OXIDATIVE_PHOSPHORYLATION == 'no')
+df <- data.frame(gene.not.hub=c(c, d),    gene.hub=c(a, b))
+row.names(df) <- c("In_GO", "not_in_GO")
+fisher.test(df)
+```
+# fIG 3B: correlation of hubgenes and BPD
+```{r}
+examplegene =c('ATP5J','COX7C') 
+p = lapply(examplegene, function(i){
+  
+  expr_example = diffexps_hgnc_f[i, ]
+  df4scatter =data.frame(logFC = expr_example, 
+                         sex = clin$Sex,
+                         DBP = clin$DBP, 
+                         row.names = rownames(clin)) %>% arrange(DBP) %>% filter(!is.na(DBP))
+  p=ggplot(df4scatter %>% filter(DBP >=60), aes(x= DBP, y = logFC, 
+                                                                     # color = as.factor(sex)
+                                                                     ))+ 
+  geom_point(size = 3) +
+  theme_bw()+
+  # geom_text_repel(label= rownames(df4scatter))+
+  stat_poly_eq(formula = y ~ x,
+              label.x = 0.95, label.y =0.1,
+              # eq.with.lhs = "italic(hat(y))~`=`~",
+              # angle = 90, hjust = 1,
+              aes(label =paste("atop(", ..eq.label.., ",", ..p.value.label.., ")", sep = "")),
+  parse = TRUE)+
+  geom_smooth(method=lm, formula = y ~ x, size=3)+xlab('DBP')+ylab('LPS response')+
+    theme(
+  axis.title = element_text(size = 20),
+  axis.text = element_text(size = 20))+
+    ggtitle(i)
+  
+  return(p)
+})
+ggarrange(p[[1]],p[[2]],ncol = 2)
+
+```
+
+
+#  Fig S3A : ARACNE NETWORK of Salmon
+```{r}
+# visualize aracne network of module salmon （Fig S3A）
+cytoscapePing()
+#ARACNEnetGraph <- simplify(graph_from_data_frame(ARACNEnet,directed=TRUE,vertices = verticesdf),remove.multiple = TRUE)
+source('function/graph_function.R')
+SubAracnenetworkGraphS = moduletfGraph(targetgenedf = subvertexdf[,c('genes',"GOBP_OXIDATIVE_PHOSPHORYLATION","hubgenepv") ],
+                          regulons = regulons,
+                          vertattrdf = corrall2)
+
+createNetworkFromIgraph(SubAracnenetworkGraphS, paste(c(colunmname, 'ARACNE'),collapse ="_") )  # you can set your own visual style in the cytoscape
+
+edgesTFsalmon <- igraph::as_data_frame(SubAracnenetworkGraphS, what = "edges")
+a = edgesTFsalmon %>% select(from) %>% left_join(corrall2 %>% select(genes, hgnc_symbol) %>% dplyr::rename(from = 'genes')) 
+b = edgesTFsalmon %>% select(to) %>% left_join(corrall2 %>% select(genes, hgnc_symbol) %>% dplyr::rename(to = 'genes'))
+edgesTFsalmon$from_hgnc = a$hgnc_symbol
+edgesTFsalmon$to_hgnc = b$hgnc_symbol
+
+write.csv(edgesTFsalmon, file = 'results/TFnetworksalmon.csv')
+
+# SubAracnenetworkGraphS = moduletfGraph(modulegenes , modulevertexdf = subvertexdf[,c('genes',"GOBP_OXIDATIVE_PHOSPHORYLATION","hubgenepv") ], ARACNEnet= regulons_df_ara, vertattrdf = corrall2, td = 0, tw= 0) 
+# modulegenes = verticesdf$genes[verticesdf$mergedColors2A.diff %in% colunmname]
+# SubAracnenetworkGraphS = moduletfGraph(modulegenes , modulevertexdf = subvertexdf[,c('genes',"GOBP_OXIDATIVE_PHOSPHORYLATION","hubgenepv") ], ARACNEnet= ARACNEnet, vertattrdf = corrall2, td = 0, tw= 0) # this is a function in 'functions.R'
+# createNetworkFromIgraph(SubAracnenetworkGraphS, paste(c(colunmname, 'ARACNE'),collapse ="_") ) # you can set your own visual style in the cytoscape
+```
+
+
+# Fig S3B: correlation between TF activity and BPD based on hubgene
+```{r}
+sub_regulons_df_ara = ARACNEnet %>% filter(Target %in% hubgene)
+salmonviper = vipertfinfoMS %>% filter(genes %in%  unique(sub_regulons_df_ara$Regulator))
+a = data.frame(degree = igraph::degree(SubAracnenetworkGraphS, mode = c("out"))) %>% rownames_to_column(var = 'genes')
+salmonviper = salmonviper %>% left_join(a,by = 'genes')
+
+cortfBPDMS2 = cortfBPDMS %>%  right_join(salmonviper %>% select(genes, hgnc_symbol,degree), by = 'genes')
+cortfBPDMS2$adjpv = p.adjust(cortfBPDMS2$TF_BPD.pv, method = 'fdr')
+  
+#Fig S3B
+# jpeg('results/Fig3b.jpg', width = 1000,height = 700, res = 300)
+ggplot(cortfBPDMS2 %>% filter(TF_BPD.pv<0.05) , aes(x =reorder(hgnc_symbol, degree), y =degree, fill = TF_BPD.cor))+
+  geom_bar(stat="identity") + 
+  scale_fill_gradient(low = 'green',  high='white')+coord_flip()+
+  # guides(fill = guide_legend(title.position = "left", title.hjust = TRUE))+
+  labs(y='Number of targets',x='TF',fill = 'Correlation')
+# dev.off()  
+```
+
+# FIG 3D
+```{r}
+dfplot = as.data.frame(t(diffexps_hgnc_f[c('ZBTB43','COX7C'),]))
+dfplot$DBP = clin$Blood_Pressure_diastolic
+
+p1 = ggplot(dfplot ,aes(x = ZBTB43, y = COX7C))+geom_point()+
+  stat_poly_eq(formula = y ~ x,
+              label.x = 0.95, label.y =0.1,
+              aes(label =paste("atop(", ..eq.label.., ",", ..p.value.label.., ")", sep = "")),
+  parse = TRUE)+
+  geom_smooth(method=lm, formula = y ~ x, size=3)
+
+dfplot = as.data.frame(t(diffexps_hgnc_f[c('ZNF12','ATP5J'),]))
+p2 = ggplot(dfplot,aes(x = ZNF12, y = ATP5J))+geom_point()+
+   ggpmisc::stat_poly_eq(formula = y ~ x,
+              label.x = 0.95, label.y =0.1,
+              aes(label =paste("atop(", ..eq.label.., ",", ..p.value.label.., ")", sep = "")),
+  parse = TRUE)+
+  geom_smooth(method=lm, formula = y ~ x, size=3)
+
+
+# jpeg('results/ZBTB43-ZNF12.jpg', width = 1500,height = 700, res = 300)
+print(ggarrange(p1,p2, ncol = 2))
+# dev.off()
+```
+
+
+#Drug repurposing for hub genes of module salmon (for running this step you need to download all files below, and wait for hours. The results is saved in 'data/druglistCSSalmonhub_new.csv', so you can just skip this step)
+```{r}
+source('function/drug_function.R')
+
+# please download the LINCS CMap L1000 data GSE 92742 and GSE70138 based on this link:https://clue.io/connectopedia/lincs_cmap_data, and save them to drugfilepath. These files are around 28GB
+# including GSE70138_Broad_LINCS_inst_info，GSE70138_Broad_LINCS_pert_info，GSE70138_Broad_LINCS_sig_info，GSE70138_Broad_LINCS_sig_metrics， 
+# GSE92742_Broad_LINCS_cell_info GSE92742_Broad_LINCS_gene_info_delta_landmark GSE92742_Broad_LINCS_gene_info GSE92742_Broad_LINCS_inst_info GSE92742_Broad_LINCS_pert_info GSE92742_Broad_LINCS_pert_metrics
+# GSE92742_Broad_LINCS_sig_info GSE92742_Broad_LINCS_sig_metrics
+# GSE70138_Broad_LINCS_Level5_COMPZ_n118050x12328.gctx
+# GSE92742_Broad_LINCS_Level5_COMPZ.MODZ_n473647x12328.gctx
+
+drugfilepath = '../data/referencefile/'
+GSEname = c('GSE70138','GSE92742')
+gse70138_info = loadGSE(GSEname[1], drugfilepath)
+gse92742_info = loadGSE(GSEname[2], drugfilepath)
+
+
+cell_line = c('HL60','THP1','NOMO1','SKM1','PL21','U266','HS27A')
+target_list = subvertexdf %>% filter(hubgenepv<0.05 )
+
+
+f <- function(x, target_list, funname){
+  print(x)
+  drugsMat = getDrugMatrix(cell_line = x, filepath= drugfilepath)
+  intersection_geneid = intersect(drugsMat$gene_info$pr_gene_id, target_list$genes)
+  targets= target_list %>% 
+    dplyr::filter(genes %in% intersection_geneid) %>% 
+    dplyr::select(genes, logFC) %>% 
+    tibble::column_to_rownames(var = 'genes') %>% 
+    as.matrix()
+  tictoc::tic()
+  if(funname == 'CS'){
+    return(getConnectivityScore(drugsMat, targets, method = 'fgsea'))
+  }else if(funname == 'ES'){
+    return(getEnrichedScores(drugs=drugsMat, targets=targets, ncore = 5))
+  }
+  tictoc::toc()
+}
+
+# this will take a long time. The results are saved in 'results/druglistCSSalmonhub.csv', so in the 'figure.rmd' you can also just read this csv file 
+cl <- makeCluster(4)
+clusterEvalQ(cl, c(source("function/drug_function.R"), library(dplyr), library(tibble)))
+clusterExport(cl, c('f', 'gse70138_info','gse92742_info','target_list','drugfilepath'))
+druglistCS <- do.call(rbind, parallel::parLapply(cl, cell_line,  function(x) f(x, target_list, funname = 'CS')))
+stopCluster(cl)
+# df <- data.frame(apply(druglistCS,2,as.character)) 
+write.csv(druglistCS,file = 'data/druglistCSSalmonhub_new.csv', row.names = FALSE)
+```
+
+
+#fig 4b
+```{r}
+df = read.csv('data/druglistCSSalmonhub_new.csv')
+# this is the table for visualizing Fig 4
+finallist.filter<- df %>% filter(pert_iname !='DMSO',Connectivity> 0.7)  %>%
+   dplyr::mutate(p.Adj = p.adjust(PValue, method = "fdr")) %>%
+  filter(p.Adj< 0.05)  %>%
+ slice_max(n = 20, order_by = Connectivity)%>%
+  mutate(label = paste(pert_iname,"(",cell_id, pert_itime,")"))
+
+# jpeg('results/top20drugs.jpg', width = 1900,height = 1200, res = 300)
+ggplot(finallist.filter) +
+  geom_col(aes(y = fct_reorder(label, Connectivity) , x = Connectivity, fill = -log10(PValue)) )+
+  scale_fill_gradient(low = 'white', high = 'darkred')+ coord_cartesian(xlim = c(0.6, 0.9))
+# dev.off()
+
+```
+
+# validate bayesian network salmon to cyan
+```{r}
+source('function/graph_function.R')
+
+salmonTF<- verticesdf %>% dplyr::filter(mergedColors2A.diff == 'salmon', TF == 'Yes')
+a = ARACNEnet %>% dplyr::filter(Regulator %in% salmonTF$genes)
+targets <- corrall2 %>% dplyr::filter(genes %in% unique(a$Target))  %>% select(mergedColors2A.diff)
+
+# fisher exact test
+a = table(targets)['cyan']
+b = nrow(subvertexdf) - a
+c = nrow(targets)-a
+d = nrow(verticesdf)-a
+df <- data.frame(target.not.cyan=c(c, d),    target.cyan =c(a, b))
+row.names(df) <- c("From_salmon", "not_from_salmon")
+fisher.test(df)
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

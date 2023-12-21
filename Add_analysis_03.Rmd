@@ -1,0 +1,162 @@
+---
+title: "Figure S2 (PCA) and additional analysis"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+
+```{r}
+library(ggplot2)
+library(stringr)
+library(ggpubr)
+library(limma)
+library(dplyr)
+library(tidyverse)
+```
+`
+
+
+
+# load clinical data 
+```{r}
+clin <-readRDS( 'data/riskfactor14.rds')
+MEs = readRDS('data/MEs.rds')
+load('data/LPSgeneexpr.RData')
+corrall2 <- readRDS('data/corrall.rds')
+
+clinfactor <- clin
+clinfactor$Sex <- factor(clin$Sex, levels = c(0, 1), labels = c("Female", "Male"))
+clinfactor[,12:14] <- apply(clin[,12:14], 2, function(x) factor(x, levels = c(0, 1), labels = c("No", "Yes")))
+# colnames(clinfactor)[10:13] <- str_remove_all(colnames(clinfactor)[10:13], "\\..*$")
+biclin <- data.frame(lapply(clinfactor[, 11:14], as.factor)) # logistic
+```
+
+
+# top 25% genes that have strongest LPS responses
+```{r}
+sumgene = rowSums(normlps)
+selectgenes = names(sort(sumgene, decreasing = TRUE)[1: round(nrow(normlps) *0.25)])
+normlps_25 <- normlps[rownames(normlps) %in% selectgenes,]
+
+sumgene = rowSums(normbase)
+selectgenes = names(sort(sumgene, decreasing = TRUE)[1: round(nrow(normbase) *0.25)])
+normbase_25 <- normbase[rownames(normbase) %in% selectgenes,]
+
+
+# PCA
+normlps_25.pca <- prcomp(t(normlps_25),  center = TRUE, scale. = TRUE) 
+normbase_25.pca <- prcomp(t(normbase_25),  center = TRUE, scale. = TRUE)
+```
+
+
+
+# visualization pca 
+```{r}
+pcaxLPS <- cbind(data.frame(normlps_25.pca$x),clinfactor ) 
+pcaxBASE <- cbind(data.frame(normbase_25.pca$x),clinfactor ) 
+
+
+for (feature in colnames(clinfactor)) {
+  
+  if ( is.numeric(clinfactor[,feature]) ){
+     p1 = ggplot(pcaxLPS)+
+    geom_point(aes_string(x= 'PC1' ,y= 'PC2', color = feature ),size = 3 )+
+    scale_color_gradient(low = 'blue',high = 'red')+
+    theme_bw()+ ggtitle("LPS")
+      p2 = ggplot(pcaxBASE)+
+    geom_point(aes_string(x= 'PC1' ,y= 'PC2', color = feature ),size = 3 )+
+    scale_color_gradient(low = 'blue',high = 'red')+
+    theme_bw()+ ggtitle("Baseline")
+  
+  }else{
+       p1 = ggplot(pcaxLPS)+
+     geom_point(aes_string(x= 'PC1' ,y= 'PC2', color = feature ),size = 3 )+
+    theme_bw()+ ggtitle("LPS")
+    p2 = ggplot(pcaxBASE)+
+    geom_point(aes_string(x= 'PC1' ,y= 'PC2', color = feature ),size = 3 )+
+    theme_bw()  + ggtitle("Baseline")
+  }
+  
+  p = ggarrange(p1, p2, ncol = 2, nrow = 1, common.legend = TRUE)
+  jpeg(filename = paste0('results/', feature,'.jpg') , width = 1700, height = 1000, res = 300)
+  print(p)
+  dev.off()
+}
+```
+
+
+# association between PC1，PC2, and clin
+```{r}
+pc2lps = pcaxLPS %>% dplyr::select(PC1, PC2)
+pc2base = pcaxBASE %>% dplyr::select(PC1, PC2)
+
+pv1_lps = matrix(nrow = ncol(pc2lps), ncol = ncol(clin))
+rho1_lps = matrix(nrow = ncol(pc2lps), ncol = ncol(clin))
+rownames(pv1_lps) = rownames(rho1_lps) = colnames(pc2lps)
+colnames(pv1_lps) = colnames(rho1_lps) = colnames(clin)
+
+pv1_base = matrix(nrow = ncol(pc2base), ncol = ncol(clin))
+rho1_base = matrix(nrow = ncol(pc2base), ncol = ncol(clin))
+rownames(pv1_base) = rownames(rho1_base) = colnames(pc2base)
+colnames(pv1_base) = colnames(rho1_base) = colnames(clin)
+
+for (i in 1:ncol(pc2lps)) {
+  for(j in 1:ncol(clin)){
+    corre = stats::cor.test(x = pc2lps[,i] ,y = clin[,j], na.action =  na.omit)
+    pv1_lps[i,j] = corre$p.value
+    rho1_lps[i,j] = corre$estimate
+    
+    corre = stats::cor.test(x = pc2base[,i] ,y = clin[,j], na.action =  na.omit)
+    pv1_base[i,j] = corre$p.value
+    rho1_base[i,j] = corre$estimate    
+  }
+}
+
+# Adjusted pvalue
+LPSpadj = rbind(p.adjust(pv1_lps[1,]),p.adjust(pv1_lps[2,])) 
+BASEpadj = rbind(p.adjust(pv1_base[1,]),p.adjust(pv1_base[2,])) 
+
+```
+
+
+
+
+# linear regration limma for confuounding anlysis https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4017459/
+```{r}
+options(na.action='na.omit')
+design = model.matrix(~clinfactor$DBP 
+                       +clinfactor$Diabetes_Mellitus
+                       + clinfactor$Glucose 
+                      + clinfactor$TG
+                      + clinfactor$HDL 
+                       + clinfactor$LDL 
+                          )
+fit <- lmFit( t(MEs[as.numeric(rownames(design)), ]), design)
+fit <- eBayes(fit)
+
+xlsx::write.xlsx(as.data.frame(fit$p.value),file = 'results/cofoundpv.xlsx')
+```
+
+
+```{r}
+options(na.action='na.omit')
+design = model.matrix(~clinfactor$DBP)
+fit <- lmFit( t(MEs[as.numeric(rownames(design)), ]), design)
+fit <- eBayes(fit)
+topTable(fit, coef = "clinfactor$DBP")
+```
+
+
+
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

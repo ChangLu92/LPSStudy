@@ -17,6 +17,9 @@ data/riskfactor14.rds: risk factors;
 
 data/network.txt :  aracne network generated using ARACNe-AP
 
+data/MEs.rds: Module eigengenes
+
+data/drugs.rds: drug info
 
 Some file and datasets should be downloaded in advance:
 ----------------------------------
@@ -24,7 +27,8 @@ GO file from GSEA website http://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
 
 TFs file download from http://humantfs.ccbr.utoronto.ca/
 
-
+(Optional) LINCS CMap L1000 data GSE 92742 and GSE70138 from :https://clue.io/connectopedia/lincs_cmap_data, 
+including GSE70138_Broad_LINCS_inst_info，GSE70138_Broad_LINCS_pert_info，GSE70138_Broad_LINCS_sig_info，GSE70138_Broad_LINCS_sig_metrics, GSE92742_Broad_LINCS_cell_info, GSE92742_Broad_LINCS_gene_info_delta_landmark, GSE92742_Broad_LINCS_gene_info, GSE92742_Broad_LINCS_inst_info, GSE92742_Broad_LINCS_pert_info, GSE92742_Broad_LINCS_pert_metrics, GSE92742_Broad_LINCS_sig_info GSE92742_Broad_LINCS_sig_metrics, GSE70138_Broad_LINCS_Level5_COMPZ_n118050x12328.gctx, GSE92742_Broad_LINCS_Level5_COMPZ.MODZ_n473647x12328.gctx
 
 Softwares
 ----------------------------------
@@ -53,7 +57,7 @@ output: GOAlllist.rds
 
 Step 3: 3_Bayesian_network.Rmd, Bayesian network construction based on 10 modules
 input:'data/corrall.rds' from step 2，LPSgeneexpr.RData
-output: bayesiannetwork.rds
+output: bayesiannetwork.rds (the results may slightly different from the Figure 2E if you rerun this step because of the bootstrapping.)
 
 
 Step 3: 3_TF_analysis.Rmd, TF analysis using Aracne and viper
@@ -64,13 +68,13 @@ output : ARACNEnet.rds， ARACNEvertices.rds，ARACNEregulons.rds
 
 Figure visualization (You should run all steps in 'Data analysis' above first)
 --------------------------------
-1. Figures related to the whole 7933 genes (Fig 1 2, S1, S2 S3): Figure_whole_01.rmd
+1. Figures related to the whole 7933 genes (Fig 1 2, S1,  S3): Figure_whole_01.rmd
 
 
 2. Figures related to module Salmon (Fig 3 4, S4): Figure_Salmon_02.rmd
 
 
-3. Additional analysis: add_Analysis.rmd
+3. Figures S2 and confunding analysis: Add_Analysis_03.rmd
 
 
 

@@ -10,9 +10,8 @@
 
 
 
-<meta name="date" content="2023-11-12" />
 
-<title>lIMMA and WGCNA analysis for LPS response gene matrix</title>
+<title>TF activity using viper</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -1747,9 +1746,7 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">lIMMA and WGCNA analysis for LPS response
-gene matrix</h1>
-<h4 class="date">2023-11-12</h4>
+<h1 class="title toc-ignore">TF activity using viper</h1>
 
 </div>
 
@@ -1763,53 +1760,79 @@ the chunk or by placing your cursor inside it and pressing
 <em>Cmd+Shift+Enter</em>.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-output-begin eyJkYXRhIjoiV2FybmluZzogcGFja2FnZSDigJhkcGx5cuKAmSB3YXMgYnVpbHQgdW5kZXIgUiB2ZXJzaW9uIDQuMi4zXG5BdHRhY2hpbmcgcGFja2FnZTog4oCYZHBseXLigJlcblxuVGhlIGZvbGxvd2luZyBvYmplY3QgaXMgbWFza2VkIGZyb20g4oCYcGFja2FnZTpncmFwaOKAmTpcblxuICAgIHVuaW9uXG5cblRoZSBmb2xsb3dpbmcgb2JqZWN0cyBhcmUgbWFza2VkIGZyb20g4oCYcGFja2FnZTpCaW9jR2VuZXJpY3PigJk6XG5cbiAgICBjb21iaW5lLCBpbnRlcnNlY3QsIHNldGRpZmYsIHVuaW9uXG5cblRoZSBmb2xsb3dpbmcgb2JqZWN0cyBhcmUgbWFza2VkIGZyb20g4oCYcGFja2FnZTpzdGF0c+KAmTpcblxuICAgIGZpbHRlciwgbGFnXG5cblRoZSBmb2xsb3dpbmcgb2JqZWN0cyBhcmUgbWFza2VkIGZyb20g4oCYcGFja2FnZTpiYXNl4oCZOlxuXG4gICAgaW50ZXJzZWN0LCBzZXRkaWZmLCBzZXRlcXVhbCwgdW5pb25cblxuXG5BdHRhY2hpbmcgcGFja2FnZTog4oCYbGltbWHigJlcblxuVGhlIGZvbGxvd2luZyBvYmplY3QgaXMgbWFza2VkIGZyb20g4oCYcGFja2FnZTpCaW9jR2VuZXJpY3PigJk6XG5cbiAgICBwbG90TUFcbiJ9 -->
-<pre><code>Warning: package ‘dplyr’ was built under R version 4.2.3
-Attaching package: ‘dplyr’
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSh2aXBlcilcblxuYGBgIn0= -->
+<pre class="r"><code>library(viper)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiTG9hZGluZyByZXF1aXJlZCBwYWNrYWdlOiBCaW9iYXNlXG5XZWxjb21lIHRvIEJpb2NvbmR1Y3RvclxuXG4gICAgVmlnbmV0dGVzIGNvbnRhaW4gaW50cm9kdWN0b3J5IG1hdGVyaWFsOyB2aWV3IHdpdGggJ2Jyb3dzZVZpZ25ldHRlcygpJy4gVG8gY2l0ZSBCaW9jb25kdWN0b3IsIHNlZSAnY2l0YXRpb24oXCJCaW9iYXNlXCIpJywgYW5kIGZvciBwYWNrYWdlcyAnY2l0YXRpb24oXCJwa2duYW1lXCIpJy5cbiJ9 -->
+<pre><code>Loading required package: Biobase
+Welcome to Bioconductor
 
-The following object is masked from ‘package:graph’:
-
-    union
-
-The following objects are masked from ‘package:BiocGenerics’:
-
-    combine, intersect, setdiff, union
-
-The following objects are masked from ‘package:stats’:
-
-    filter, lag
-
-The following objects are masked from ‘package:base’:
-
-    intersect, setdiff, setequal, union
-
-
-Attaching package: ‘limma’
-
-The following object is masked from ‘package:BiocGenerics’:
-
-    plotMA</code></pre>
+    Vignettes contain introductory material; view with &#39;browseVignettes()&#39;. To cite Bioconductor, see &#39;citation(&quot;Biobase&quot;)&#39;, and for packages &#39;citation(&quot;pkgname&quot;)&#39;.</code></pre>
 <!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeSh2aXBlcilcbmxpYnJhcnkodGliYmxlKVxuYGBgIn0= -->
+<pre class="r"><code>library(viper)
+library(tibble)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<div id="load-gene-expression-data-and-wgcna-clusters" class="section level1">
-<h1>load gene expression data and wgcna clusters</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG5jb3JyYWxsMiA9IHJlYWRSRFMoJ2RhdGEvY29ycmFsbC5yZHMnKVxubG9hZCgnZGF0YS9MUFNnZW5lZXhwci5SRGF0YScpXG5cbmFkamZpbGUgPC0gJ2RhdGEvbmV0d29yay50eHQnXG5yZWd1bG9ucyA8LSBhcmFjbmUycmVndWxvbihhZGpmaWxlLCBkaWZmZXhwc2ZpdGVyLCB2ZXJib3NlID0gRkFMU0UpICBcbiAgXG5gYGAifQ== -->
+<pre class="r"><code>
+corrall2 = readRDS(&#39;data/corrall.rds&#39;)
+load(&#39;data/LPSgeneexpr.RData&#39;)
+
+adjfile &lt;- &#39;data/network.txt&#39;
+regulons &lt;- aracne2regulon(adjfile, diffexpsfiter, verbose = FALSE)  
+  </code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-</div>
-<div id="limma-logfc-for-diffexpsfiter" class="section level1">
-<h1>limma logFC FOR diffexpsfiter</h1>
+<div id="tf-activity-using-viper" class="section level1">
+<h1>TF activity using viper</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuXG5yZXNtcyA8LSB2aXBlcihkaWZmZXhwc2ZpdGVyLCByZWd1bG9ucyxtaW5zaXplID0gMilcbiMgVEYgYWN0aXZpdHkgZm9yIGxvZ0ZDIG9mIExQU1xubG9nZmNtYXQgPSBhcy5tYXRyaXgoY29ycmFsbDIkbG9nRkMpXG5yb3duYW1lcyhsb2dmY21hdCk9Y29ycmFsbDIkZ2VuZXNcblxudGljdG9jOjp0aWMoKVxuZG51bGwgPC0gdmlwZXJOdWxsZ2VuZShleHBzZXQ9IGxvZ2ZjbWF0ICwgcGVyPSAxMDAwMClcbnRpY3RvYzo6dG9jKClcblxuVEZhY3Rpdml0eV9scHMgPC0gbXN2aXBlcihsb2dmY21hdCwgcmVndWxvbnMsIGRudWxsLCBtaW5zaXplID0gMiwgY29yZXMgPSAxKVxudGZfYWN0aXZpdHlfbHBzID0gZGF0YS5mcmFtZShURl9Mb2dGQy5ORVMgPSBURmFjdGl2aXR5X2xwcyRlcyRuZXMsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICBURl9Mb2dGQy5QViA9IFRGYWN0aXZpdHlfbHBzJGVzJHAudmFsdWUsXG4gICAgICAgICAgICAgICAgICAgICAgICAgICAgICBnZW5lcyA9IG5hbWVzKFRGYWN0aXZpdHlfbHBzJGVzJG5lcykpXG5cbiMgdmlwZXJ0ZmluZm9NUyBnZW5lcmF0aW9uXG52aXBlcnRmaW5mb01TID0gdmVydGljZXNkZiAlPiUgZmlsdGVyKGdlbmVzICVpbiUgcm93bmFtZXMocmVzbXMpKVxuXG5cbiMgY29ydGZCUERNUyBibG9vZCBwcmVzc3VyZVxudHJhaXRpbmFtZSA9ICdCbG9vZF9QcmVzc3VyZV9kaWFzdG9saWMnXG50cmFpdGkgPSBjbGluWyx0cmFpdGluYW1lXVxuY29ydGZCUERNUyA8LSBhcy5kYXRhLmZyYW1lKHQoYXBwbHkocmVzbXNbcm93bmFtZXMocmVzbXMpICVpbiUgdmlwZXJ0ZmluZm9NUyRnZW5lcyxdLCAxLCBmdW5jdGlvbih4KSB7IHJlc21zID0gY29yLnRlc3QoeCwgeSA9IHRyYWl0aSwgbWV0aG9kID0gIFwicGVhcnNvblwiKVxucmV0dXJuKGMocmVzbXMkcC52YWx1ZSxyZXNtcyRlc3RpbWF0ZSkpfSkpKSAlPiUgcmVuYW1lKFRGX0JQRC5wdiA9ICdWMScsIFRGX0JQRC5jb3IgPSAnY29yJykgJT4lIHRpYmJsZTo6cm93bmFtZXNfdG9fY29sdW1uKHZhciA9ICdnZW5lcycpICU+JSBtdXRhdGUoZ2VuZXMgPSBhcy5jaGFyYWN0ZXIoZ2VuZXMpKVxuXG5cbiMgdmlwZXJ0ZmluZm9NUyBDT05ORUNUSU9OXG52aXBlcnRmaW5mb01TID0gdmlwZXJ0ZmluZm9NUyAlPiUgbGVmdF9qb2luKGNvcnRmQlBETVMgLCBieSA9ICdnZW5lcycpICU+JSBsZWZ0X2pvaW4oY29ydGZCUFNNUyAsIGJ5ID0gJ2dlbmVzJykgJT4lIGxlZnRfam9pbih0Zl9hY3Rpdml0eV9scHMgLCBieSA9ICdnZW5lcycpXG52aXBlcnRmaW5mb01TJEJQRGxhYmVsID0gcGFzdGUwKHZpcGVydGZpbmZvTVMkaGduY19zeW1ib2wsJygnLHZpcGVydGZpbmZvTVMkbWVyZ2VkQ29sb3JzMkEuZGlmZiwnKScpXG5cbmBgYCJ9 -->
+<pre class="r"><code>
+resms &lt;- viper(diffexpsfiter, regulons,minsize = 2)
+# TF activity for logFC of LPS
+logfcmat = as.matrix(corrall2$logFC)
+rownames(logfcmat)=corrall2$genes
+
+tictoc::tic()
+dnull &lt;- viperNullgene(expset= logfcmat , per= 10000)
+tictoc::toc()
+
+TFactivity_lps &lt;- msviper(logfcmat, regulons, dnull, minsize = 2, cores = 1)
+tf_activity_lps = data.frame(TF_LogFC.NES = TFactivity_lps$es$nes,
+                              TF_LogFC.PV = TFactivity_lps$es$p.value,
+                              genes = names(TFactivity_lps$es$nes))
+
+# vipertfinfoMS generation
+vipertfinfoMS = verticesdf %&gt;% filter(genes %in% rownames(resms))
+
+
+# cortfBPDMS blood pressure
+traitiname = &#39;Blood_Pressure_diastolic&#39;
+traiti = clin[,traitiname]
+cortfBPDMS &lt;- as.data.frame(t(apply(resms[rownames(resms) %in% vipertfinfoMS$genes,], 1, function(x) { resms = cor.test(x, y = traiti, method =  &quot;pearson&quot;)
+return(c(resms$p.value,resms$estimate))}))) %&gt;% rename(TF_BPD.pv = &#39;V1&#39;, TF_BPD.cor = &#39;cor&#39;) %&gt;% tibble::rownames_to_column(var = &#39;genes&#39;) %&gt;% mutate(genes = as.character(genes))
+
+
+# vipertfinfoMS CONNECTION
+vipertfinfoMS = vipertfinfoMS %&gt;% left_join(cortfBPDMS , by = &#39;genes&#39;) %&gt;% left_join(cortfBPSMS , by = &#39;genes&#39;) %&gt;% left_join(tf_activity_lps , by = &#39;genes&#39;)
+vipertfinfoMS$BPDlabel = paste0(vipertfinfoMS$hgnc_symbol,&#39;(&#39;,vipertfinfoMS$mergedColors2A.diff,&#39;)&#39;)
+</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-</div>
-<div id="save-to-dfwgcna.rds" class="section level1">
-<h1>save to ‘DFWGCNA.rds’</h1>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2F2ZVJEUyh2aXBlcnRmaW5mb01TLCAnZGF0YS92aXBlcnRmaW5mb01TLnJkcycpXG5zYXZlUkRTKGNvcnRmQlBETVMsICdkYXRhL2NvcnRmQlBETVMucmRzJylcbmBgYCJ9 -->
+<pre class="r"><code>saveRDS(vipertfinfoMS, &#39;data/vipertfinfoMS.rds&#39;)
+saveRDS(cortfBPDMS, &#39;data/cortfBPDMS.rds&#39;)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the
@@ -1824,7 +1847,7 @@ run in the editor is displayed.</p>
 <!-- rnb-text-end -->
 </div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAibElNTUEgYW5kIFdHQ05BIGFuYWx5c2lzIGZvciBMUFMgcmVzcG9uc2UgZ2VuZSBtYXRyaXgiCm91dHB1dDogaHRtbF9ub3RlYm9vawpkYXRlOiAiMjAyMy0xMS0xMiIKLS0tCgpUaGlzIGlzIGFuIFtSIE1hcmtkb3duXShodHRwOi8vcm1hcmtkb3duLnJzdHVkaW8uY29tKSBOb3RlYm9vay4gV2hlbiB5b3UgZXhlY3V0ZSBjb2RlIHdpdGhpbiB0aGUgbm90ZWJvb2ssIHRoZSByZXN1bHRzIGFwcGVhciBiZW5lYXRoIHRoZSBjb2RlLiAKClRyeSBleGVjdXRpbmcgdGhpcyBjaHVuayBieSBjbGlja2luZyB0aGUgKlJ1biogYnV0dG9uIHdpdGhpbiB0aGUgY2h1bmsgb3IgYnkgcGxhY2luZyB5b3VyIGN1cnNvciBpbnNpZGUgaXQgYW5kIHByZXNzaW5nICpDbWQrU2hpZnQrRW50ZXIqLiAKCmBgYHtyfQpsaWJyYXJ5KGRwbHlyKQpsaWJyYXJ5KHRpYmJsZSkKbGlicmFyeShsaW1tYSkKbGlicmFyeShnZ3Bsb3QyKQpgYGAKCiMgbG9hZCBnZW5lIGV4cHJlc3Npb24gZGF0YSBhbmQgd2djbmEgY2x1c3RlcnMKYGBge3J9CiMgZ2VuZSBpbmZvIGluY2x1ZGVzIHRoZSBnZW5lIG5hbWUsIFRMUjQgZ2VuZXMsIGFuZCBXR0NOQSBjbHVzdGVycyAoJ21lcmdlZENvbG9yczJBLmRpZmYnKQojIHdlIGRpZCBub3QgcmVydW4gV0dDTkEgYmVjYXVzZSB0aGUgY2x1c3RlcnMgbWF5IGNoYW5nZSBmb3IgZWFjaCB0aW1lIGNsdXN0ZXJpbmcuCmdlbmVpbmZvID0gcmVhZFJEUygnZGF0YS9nZW5laW5mby5yZHMnKQpsb2FkKCdkYXRhL0xQU2dlbmVleHByLlJEYXRhJykKIyBub3JtbHBzOiBsb2cyIExQUyBnZW5lIGV4cHJlc3Npb24KIyBub3JtYmFzZTogbG9nMiBiYXNlbGluZSBnZW5lIGV4cHJlc3Npb24KIyBkaWZmZXhwc2ZpdGVyOiBMUFMgcmVzcG9uc2UgbWF0cml4IChsb2cyTFBTIC0gbG9nMkJhc2UpLHRoZSByb3dzIGFyZSBlbnRyZXogaWQKIyBkaWZmZXhwc19oZ25jX2YgOiBMUFMgcmVzcG9uc2UgbWF0cml4IChsb2cyTFBTIC0gbG9nMkJhc2UpLCAgdGhlIHJvd3MgYXJlIGdlbmUgc3ltYm9sCmFsbGdlbmVzREZscHNmaWx0ZXIgPSBnZW5laW5mbwoKCmBgYAoKCiMgbGltbWEgbG9nRkMgRk9SIGRpZmZleHBzZml0ZXIKYGBge3J9CkRFUiA8LSB0b3BUYWJsZShlQmF5ZXMobG1GaXQoZGlmZmV4cHNmaXRlcikpLCBudW1iZXI9bnJvdyhkaWZmZXhwc2ZpdGVyKSkgJT4lIHJvd25hbWVzX3RvX2NvbHVtbih2YXIgPSAnZ2VuZXMnKQojZ2dwbG90KERFUiwgYWVzKHggPSBsb2dGQywgeT0tbG9nMTAoYWRqLlAuVmFsKSkpK2dlb21fcG9pbnQoKQphbGxnZW5lc0RGbHBzZmlsdGVyID0gYWxsZ2VuZXNERmxwc2ZpbHRlciAlPiUgbGVmdF9qb2luKERFUiwgYnkgPSAnZ2VuZXMnKQpgYGAKCiMgc2F2ZSB0byAnREZXR0NOQS5yZHMnCmBgYHtyfQpzYXZlUkRTKGFsbGdlbmVzREZscHNmaWx0ZXIsICdkYXRhL0RGV0dDTkEucmRzJykKYGBgCgoKCgoKCkFkZCBhIG5ldyBjaHVuayBieSBjbGlja2luZyB0aGUgKkluc2VydCBDaHVuayogYnV0dG9uIG9uIHRoZSB0b29sYmFyIG9yIGJ5IHByZXNzaW5nICpDbWQrT3B0aW9uK0kqLgoKV2hlbiB5b3Ugc2F2ZSB0aGUgbm90ZWJvb2ssIGFuIEhUTUwgZmlsZSBjb250YWluaW5nIHRoZSBjb2RlIGFuZCBvdXRwdXQgd2lsbCBiZSBzYXZlZCBhbG9uZ3NpZGUgaXQgKGNsaWNrIHRoZSAqUHJldmlldyogYnV0dG9uIG9yIHByZXNzICpDbWQrU2hpZnQrSyogdG8gcHJldmlldyB0aGUgSFRNTCBmaWxlKS4gCgpUaGUgcHJldmlldyBzaG93cyB5b3UgYSByZW5kZXJlZCBIVE1MIGNvcHkgb2YgdGhlIGNvbnRlbnRzIG9mIHRoZSBlZGl0b3IuIENvbnNlcXVlbnRseSwgdW5saWtlICpLbml0KiwgKlByZXZpZXcqIGRvZXMgbm90IHJ1biBhbnkgUiBjb2RlIGNodW5rcy4gSW5zdGVhZCwgdGhlIG91dHB1dCBvZiB0aGUgY2h1bmsgd2hlbiBpdCB3YXMgbGFzdCBydW4gaW4gdGhlIGVkaXRvciBpcyBkaXNwbGF5ZWQuCgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVEYgYWN0aXZpdHkgdXNpbmcgdmlwZXIiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KClRoaXMgaXMgYW4gW1IgTWFya2Rvd25dKGh0dHA6Ly9ybWFya2Rvd24ucnN0dWRpby5jb20pIE5vdGVib29rLiBXaGVuIHlvdSBleGVjdXRlIGNvZGUgd2l0aGluIHRoZSBub3RlYm9vaywgdGhlIHJlc3VsdHMgYXBwZWFyIGJlbmVhdGggdGhlIGNvZGUuIAoKVHJ5IGV4ZWN1dGluZyB0aGlzIGNodW5rIGJ5IGNsaWNraW5nIHRoZSAqUnVuKiBidXR0b24gd2l0aGluIHRoZSBjaHVuayBvciBieSBwbGFjaW5nIHlvdXIgY3Vyc29yIGluc2lkZSBpdCBhbmQgcHJlc3NpbmcgKkNtZCtTaGlmdCtFbnRlciouIAoKCmBgYHtyfQpsaWJyYXJ5KGRwbHlyKQpsaWJyYXJ5KHZpcGVyKQpsaWJyYXJ5KHRpYmJsZSkKYGBgCgpgYGB7cn0KCmNvcnJhbGwyID0gcmVhZFJEUygnZGF0YS9jb3JyYWxsLnJkcycpCmxvYWQoJ2RhdGEvTFBTZ2VuZWV4cHIuUkRhdGEnKQoKYWRqZmlsZSA8LSAnZGF0YS9uZXR3b3JrLnR4dCcKcmVndWxvbnMgPC0gYXJhY25lMnJlZ3Vsb24oYWRqZmlsZSwgZGlmZmV4cHNmaXRlciwgdmVyYm9zZSA9IEZBTFNFKSAgCiAgCmBgYAoKCiMgVEYgYWN0aXZpdHkgdXNpbmcgdmlwZXIKYGBge3J9CgpyZXNtcyA8LSB2aXBlcihkaWZmZXhwc2ZpdGVyLCByZWd1bG9ucyxtaW5zaXplID0gMikKIyBURiBhY3Rpdml0eSBmb3IgbG9nRkMgb2YgTFBTCmxvZ2ZjbWF0ID0gYXMubWF0cml4KGNvcnJhbGwyJGxvZ0ZDKQpyb3duYW1lcyhsb2dmY21hdCk9Y29ycmFsbDIkZ2VuZXMKCnRpY3RvYzo6dGljKCkKZG51bGwgPC0gdmlwZXJOdWxsZ2VuZShleHBzZXQ9IGxvZ2ZjbWF0ICwgcGVyPSAxMDAwMCkKdGljdG9jOjp0b2MoKQoKVEZhY3Rpdml0eV9scHMgPC0gbXN2aXBlcihsb2dmY21hdCwgcmVndWxvbnMsIGRudWxsLCBtaW5zaXplID0gMiwgY29yZXMgPSAxKQp0Zl9hY3Rpdml0eV9scHMgPSBkYXRhLmZyYW1lKFRGX0xvZ0ZDLk5FUyA9IFRGYWN0aXZpdHlfbHBzJGVzJG5lcywKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgVEZfTG9nRkMuUFYgPSBURmFjdGl2aXR5X2xwcyRlcyRwLnZhbHVlLAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICBnZW5lcyA9IG5hbWVzKFRGYWN0aXZpdHlfbHBzJGVzJG5lcykpCgojIHZpcGVydGZpbmZvTVMgZ2VuZXJhdGlvbgp2aXBlcnRmaW5mb01TID0gdmVydGljZXNkZiAlPiUgZmlsdGVyKGdlbmVzICVpbiUgcm93bmFtZXMocmVzbXMpKQoKCiMgY29ydGZCUERNUyBibG9vZCBwcmVzc3VyZQp0cmFpdGluYW1lID0gJ0Jsb29kX1ByZXNzdXJlX2RpYXN0b2xpYycKdHJhaXRpID0gY2xpblssdHJhaXRpbmFtZV0KY29ydGZCUERNUyA8LSBhcy5kYXRhLmZyYW1lKHQoYXBwbHkocmVzbXNbcm93bmFtZXMocmVzbXMpICVpbiUgdmlwZXJ0ZmluZm9NUyRnZW5lcyxdLCAxLCBmdW5jdGlvbih4KSB7IHJlc21zID0gY29yLnRlc3QoeCwgeSA9IHRyYWl0aSwgbWV0aG9kID0gICJwZWFyc29uIikKcmV0dXJuKGMocmVzbXMkcC52YWx1ZSxyZXNtcyRlc3RpbWF0ZSkpfSkpKSAlPiUgcmVuYW1lKFRGX0JQRC5wdiA9ICdWMScsIFRGX0JQRC5jb3IgPSAnY29yJykgJT4lIHRpYmJsZTo6cm93bmFtZXNfdG9fY29sdW1uKHZhciA9ICdnZW5lcycpICU+JSBtdXRhdGUoZ2VuZXMgPSBhcy5jaGFyYWN0ZXIoZ2VuZXMpKQoKCiMgdmlwZXJ0ZmluZm9NUyBDT05ORUNUSU9OCnZpcGVydGZpbmZvTVMgPSB2aXBlcnRmaW5mb01TICU+JSBsZWZ0X2pvaW4oY29ydGZCUERNUyAsIGJ5ID0gJ2dlbmVzJykgJT4lIGxlZnRfam9pbihjb3J0ZkJQU01TICwgYnkgPSAnZ2VuZXMnKSAlPiUgbGVmdF9qb2luKHRmX2FjdGl2aXR5X2xwcyAsIGJ5ID0gJ2dlbmVzJykKdmlwZXJ0ZmluZm9NUyRCUERsYWJlbCA9IHBhc3RlMCh2aXBlcnRmaW5mb01TJGhnbmNfc3ltYm9sLCcoJyx2aXBlcnRmaW5mb01TJG1lcmdlZENvbG9yczJBLmRpZmYsJyknKQoKYGBgCgoKYGBge3J9CnNhdmVSRFModmlwZXJ0ZmluZm9NUywgJ2RhdGEvdmlwZXJ0ZmluZm9NUy5yZHMnKQpzYXZlUkRTKGNvcnRmQlBETVMsICdkYXRhL2NvcnRmQlBETVMucmRzJykKYGBgCgoKQWRkIGEgbmV3IGNodW5rIGJ5IGNsaWNraW5nIHRoZSAqSW5zZXJ0IENodW5rKiBidXR0b24gb24gdGhlIHRvb2xiYXIgb3IgYnkgcHJlc3NpbmcgKkNtZCtPcHRpb24rSSouCgpXaGVuIHlvdSBzYXZlIHRoZSBub3RlYm9vaywgYW4gSFRNTCBmaWxlIGNvbnRhaW5pbmcgdGhlIGNvZGUgYW5kIG91dHB1dCB3aWxsIGJlIHNhdmVkIGFsb25nc2lkZSBpdCAoY2xpY2sgdGhlICpQcmV2aWV3KiBidXR0b24gb3IgcHJlc3MgKkNtZCtTaGlmdCtLKiB0byBwcmV2aWV3IHRoZSBIVE1MIGZpbGUpLiAKClRoZSBwcmV2aWV3IHNob3dzIHlvdSBhIHJlbmRlcmVkIEhUTUwgY29weSBvZiB0aGUgY29udGVudHMgb2YgdGhlIGVkaXRvci4gQ29uc2VxdWVudGx5LCB1bmxpa2UgKktuaXQqLCAqUHJldmlldyogZG9lcyBub3QgcnVuIGFueSBSIGNvZGUgY2h1bmtzLiBJbnN0ZWFkLCB0aGUgb3V0cHV0IG9mIHRoZSBjaHVuayB3aGVuIGl0IHdhcyBsYXN0IHJ1biBpbiB0aGUgZWRpdG9yIGlzIGRpc3BsYXllZC4KCg==</div>
 
 
 
@@ -1871,7 +1894,7 @@ $(document).ready(function () {
 <!-- code folding -->
 <script>
 $(document).ready(function () {
-  window.initializeSourceEmbed("1_DFWGCNA.Rmd");
+  window.initializeSourceEmbed("3_TF_activity.Rmd");
   window.initializeCodeFolding("show" === "show");
 });
 </script>
