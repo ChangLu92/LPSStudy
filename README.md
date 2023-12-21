@@ -62,7 +62,7 @@ output: vipertfinfoMS.rds， cortfBPDMS.rds  (if you recalculate VIPER, you may 
 output : ARACNEnet.rds， ARACNEvertices.rds，ARACNEregulons.rds
 
 
-Figure visualization
+Figure visualization (You should run all steps in 'Data analysis' above first)
 --------------------------------
 1. Figures related to the whole 7933 genes (Fig 1 2, S1, S2 S3): Figure_whole_01.rmd
 
